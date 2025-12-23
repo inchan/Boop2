@@ -1,5 +1,15 @@
 # Boop2
 
+## ⚡️ Quick Start
+For developers, get Boop2 running in seconds:
+```bash
+npm install
+./BIR.sh
+```
+*This will build, install to `/Applications`, and launch the app immediately.*
+
+---
+
 A scriptable developer's notepad for quick text manipulation. Ported from the original macOS app to **Tauri 2.0**, featuring multi-tab support and background script execution.
 
 ## 🚀 Features
@@ -13,13 +23,6 @@ A scriptable developer's notepad for quick text manipulation. Ported from the or
 1. **Download:** Grab the latest `.app` or `.dmg` from the Releases.
 2. **Install:** Drag to `/Applications`.
 3. **Enjoy:** Press `Cmd + B` to search and run scripts.
-
-### ⚡️ All-in-One Developer Script (BIR)
-For rapid development, use the **BIR** (Build, Install, Run) script:
-```bash
-./BIR.sh
-```
-This single command automates the entire production build, installs the app to your system, and launches Boop2 immediately.
 
 ## 📖 Documentation
 - **[User Guide](docs/USER_GUIDE.md)**: Features and usage instructions.
