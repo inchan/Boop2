@@ -5,7 +5,7 @@ You can extend Boop's functionality by writing your own JavaScript scripts.
 ## Script Location
 To add custom scripts, place your `.js` files in the following directory:
 
-*   **macOS:** `~/Library/Application Support/com.chans.boop-tauri/scripts/`
+*   **macOS:** `~/Library/Application Support/com.chans.boop2/scripts/`
     *(Note: You may need to create the `scripts` folder if it doesn't exist)*
 
 ## File Format

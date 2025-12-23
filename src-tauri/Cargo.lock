@@ -272,7 +272,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "boop-tauri"
+name = "boop2"
 version = "0.1.0"
 dependencies = [
  "serde",

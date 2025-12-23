@@ -1,11 +1,11 @@
-# Boop (Tauri Edition)
+# Boop2
 
-Boop is a scriptable text manipulation tool for developers. Ported from the original macOS app to [Tauri](https://tauri.app/), it's faster, lighter, and cross-platform.
+Boop2 is a scriptable text manipulation tool for developers. Ported from the original macOS app to [Tauri](https://tauri.app/), it's faster, lighter, and cross-platform.
 
 ## 📥 Get Started
 1.  **Download:** Get the latest `.app` or `.dmg` from the Releases.
 2.  **Install:** Move to your `/Applications` folder.
-3.  **Run:** Open Boop and press `Cmd+B` to start booping!
+3.  **Run:** Open Boop2 and press `Cmd+B` to start booping!
 
 ## 📖 Documentation
 - **[User Guide](docs/USER_GUIDE.md)**: How to use the app.

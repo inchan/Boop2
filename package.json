@@ -1,5 +1,5 @@
 {
-  "name": "boop-tauri",
+  "name": "boop2",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:install": "tauri build && cp -rf src-tauri/target/release/bundle/macos/boop-tauri.app /Applications/ && echo '✅ Installed successfully!'"
+    "build:install": "tauri build && cp -rf src-tauri/target/release/bundle/macos/Boop2.app /Applications/ && echo '✅ Installed successfully!'"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.1",
