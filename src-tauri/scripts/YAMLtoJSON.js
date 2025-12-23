@@ -14,10 +14,11 @@ const yaml = require('@boop/js-yaml')
 function main(input) {
 
 	try {
-        input.text = JSON.stringify(yaml.safeLoad(input.text), null, 2)
+        // In js-yaml v4, safeLoad is removed and replaced by load
+        input.text = JSON.stringify(yaml.load(input.text), null, 2)
 	}
 	catch(error) {
-		input.postError("Invalid YAML")
+		input.postError("Invalid YAML: " + error.message)
 	}
 	
 }

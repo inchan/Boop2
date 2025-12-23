@@ -82,9 +82,9 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         const execution = new WorkerScriptExecution(context);
 
         // Create the Function
-        // We use "self.requireShim" logic or pass it directly
+        // Inject common variables used in Boop scripts to prevent ReferenceErrors
         const runner = new Function('input', 'require', `
-            "use strict";
+            var buf, i, url, R, G, B, result, res, data; 
             ${script}
             if (typeof main === 'function') {
                 main(input);

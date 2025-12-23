@@ -20,10 +20,23 @@ const Base64 = {
                 return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
             }).join(''));
         } catch (e) {
-            // Fallback to native if decodeURIComponent fails
             return atob(str);
         }
     },
+};
+
+/**
+ * Explicit shim for vkBeautify to match Boop's expected interface.
+ */
+const vkBeautifyShim = {
+    css: (t: any, s: any) => vkbeautify.css(t, s),
+    cssmin: (t: any, p: any) => vkbeautify.cssmin(t, p),
+    sql: (t: any, s: any) => vkbeautify.sql(t, s),
+    sqlmin: (t: any) => vkbeautify.sqlmin(t),
+    xml: (t: any, s: any) => vkbeautify.xml(t, s),
+    xmlmin: (t: any, p: any) => vkbeautify.xmlmin(t, p),
+    json: (t: any, s: any) => vkbeautify.json(t, s),
+    jsonmin: (t: any) => vkbeautify.jsonmin(t),
 };
 
 // Mapping Boop's expected file paths to actual library instances
@@ -31,7 +44,7 @@ const modules: Record<string, any> = {
     // Lodash
     'lodash': _,
     '@boop/lodash.boop': _,
-    './lib/lodash.boop.js': _, // Legacy path support
+    './lib/lodash.boop.js': _,
 
     // Base64
     '@boop/base64': Base64,
@@ -53,9 +66,9 @@ const modules: Record<string, any> = {
     '@boop/hashes': Hashes,
     './lib/hashes.js': Hashes,
 
-    // Beautify (XML, SQL, CSS)
-    '@boop/vkBeautify': vkbeautify,
-    './lib/vkBeautify.js': vkbeautify,
+    // Beautify
+    '@boop/vkBeautify': vkBeautifyShim,
+    './lib/vkBeautify.js': vkBeautifyShim,
 };
 
 export function requireShim(moduleName: string): any {
@@ -63,11 +76,9 @@ export function requireShim(moduleName: string): any {
         return modules[moduleName];
     }
     
-    // Fallback for relative paths trying to find these libs
     const cleanName = moduleName.split('/').pop()?.replace('.js', '');
     if (cleanName) {
-        // Find by fuzzy match keys
-        const found = Object.keys(modules).find(k => k.includes(cleanName));
+        const found = Object.keys(modules).find(k => k.toLowerCase().includes(cleanName.toLowerCase()));
         if (found) return modules[found];
     }
     

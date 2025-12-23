@@ -13,9 +13,10 @@ const yaml = require('@boop/js-yaml')
 
 function main(input) {
 	try {
-		input.text = yaml.safeDump(JSON.parse(input.text))
+		// In js-yaml v4, safeDump is removed and replaced by dump
+		input.text = yaml.dump(JSON.parse(input.text))
 	}
 	catch(error) {
-		input.postError("Invalid JSON")
+		input.postError("Invalid JSON or Conversion Error: " + error.message)
 	}
 }

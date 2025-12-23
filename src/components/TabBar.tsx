@@ -15,9 +15,9 @@ interface Props {
     onAdd: () => void;
     onRename: (id: string, newTitle: string) => void;
     onToggleClipboard: () => void;
-    onToggleSessions: () => void; // New
+    onToggleSessions: () => void;
     hasHistory: boolean;
-    hasSessions: boolean; // New
+    hasSessions: boolean;
 }
 
 export function TabBar({ 
@@ -64,8 +64,8 @@ export function TabBar({
     };
 
     return (
-        <div className="tab-bar-container">
-            <div className="tabs-list">
+        <div className="tab-bar-container" data-tauri-drag-region>
+            <div className="tabs-list" data-tauri-drag-region>
                 {tabs.map(tab => (
                     <div 
                         key={tab.id}
@@ -102,7 +102,7 @@ export function TabBar({
                 </div>
             </div>
             
-            <div className="tab-bar-actions">
+            <div className="tab-bar-actions" data-tauri-drag-region>
                 {hasHistory && (
                     <div className="action-btn clipboard-btn" onClick={onToggleClipboard} title="Clipboard History">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -17,18 +17,19 @@ Boop2 allows you to work on multiple documents simultaneously.
 
 ## 📋 Clipboard History
 Every time you paste text (`Cmd + V`), Boop2 records it in its internal history.
-- **Access:** Click the **Clipboard icon** at the top right.
+- **Access:** Click the **Clipboard icon** at the top right of the tab bar.
 - **Action:** Click any item to replace the current tab's content with that history.
 - **Management:** Hover over an item to delete it individually, or use "Clear All".
-- *Note: History is cleared when the app is fully closed.*
+- *Note: History is kept in memory and cleared when the app is fully closed.*
 
 ## 🕒 Session Restore
-Accidentally closed the app or want to go back to a previous state?
-- **Access:** Click the **Clock icon** at the top right.
+Boop2 automatically archives your workspace when you close the app.
+- **Access:** Click the **Clock icon** at the top right of the tab bar.
 - **Restore:** Select a previous session to recover all tabs and their contents from that time.
-- **Limit:** Boop2 keeps the last 15 sessions.
+- **Persistence:** Boop2 stores up to **50 sessions** internally, with the **latest 2** visible in the quick-restore menu.
 
 ## ✍️ Editor Features
 - **Line Wrapping:** Enabled by default for easy reading of long strings.
 - **Smart Indent:** Disabled by default to prevent unwanted formatting changes while booping.
 - **Theme:** Custom Boop Dark Theme with SF Mono/Menlo font.
+- **Native Experience:** Standard macOS title bar for reliable window management and dragging.
