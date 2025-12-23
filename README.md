@@ -1,16 +1,22 @@
 # Boop2
 
+A scriptable developer's notepad for quick text manipulation. Ported from the original macOS app to **Tauri 2.0**, featuring multi-tab support and background script execution.
+
 ## ⚡️ Quick Start
 For developers, get Boop2 running in seconds:
 ```bash
 npm install
 ./BIR.sh
 ```
-*This will build, install to `/Applications`, and launch the app immediately.*
+*This single command automates the production build, installs the app to your system, and launches Boop2 immediately.*
+
+## 📦 Installation
+For users who just want to use the app:
+1. **Download:** Grab the latest `.app` or `.dmg` from the **Releases**.
+2. **Install:** Move to your `/Applications` folder.
+3. **Run:** Open Boop2 and press `Cmd + B` to start booping!
 
 ---
-
-A scriptable developer's notepad for quick text manipulation. Ported from the original macOS app to **Tauri 2.0**, featuring multi-tab support and background script execution.
 
 ## 🚀 Features
 - **Multi-Tab Interface:** Work on multiple documents at once.
@@ -18,11 +24,6 @@ A scriptable developer's notepad for quick text manipulation. Ported from the or
 - **Session History:** Automatically archive and restore your previous work.
 - **Clipboard Tracking:** Keeps a history of your pasted snippets.
 - **95%+ Compatibility:** Supports nearly all original Boop scripts.
-
-## 📥 Getting Started
-1. **Download:** Grab the latest `.app` or `.dmg` from the Releases.
-2. **Install:** Drag to `/Applications`.
-3. **Enjoy:** Press `Cmd + B` to search and run scripts.
 
 ## 📖 Documentation
 - **[User Guide](docs/USER_GUIDE.md)**: Features and usage instructions.
