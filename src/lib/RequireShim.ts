@@ -7,10 +7,23 @@ import Hashes from 'jshashes';
 // @ts-ignore
 import vkbeautify from 'vkbeautify';
 
-// Base64 Wrapper
+// Base64 Wrapper with Unicode support
 const Base64 = {
-    encode: (s: string) => btoa(s),
-    decode: (s: string) => atob(s),
+    encode: (str: string) => {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_match, p1) => {
+            return String.fromCharCode(parseInt(p1, 16));
+        }));
+    },
+    decode: (str: string) => {
+        try {
+            return decodeURIComponent(atob(str).split('').map((c) => {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        } catch (e) {
+            // Fallback to native if decodeURIComponent fails
+            return atob(str);
+        }
+    },
 };
 
 // Mapping Boop's expected file paths to actual library instances

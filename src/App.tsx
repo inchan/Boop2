@@ -65,9 +65,8 @@ function App() {
                               timestamp: Date.now(),
                               tabs: parsedTmp
                           };
-                          sessionStack = [archivedSession, ...sessionStack].slice(0, 15);
-                          localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessionStack));
-                      }
+                                                                      sessionStack = [archivedSession, ...sessionStack].slice(0, 50);
+                                                                      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessionStack));                      }
                   }
                   localStorage.removeItem(STORAGE_KEY_CURRENT_TMP);
               }
@@ -151,7 +150,7 @@ function App() {
       setTabs(session.tabs);
       if (session.tabs.length > 0) setActiveTabId(session.tabs[0].id);
       
-      setSessions(prev => [currentSnapshot, ...prev.filter(s => s.id !== session.id)].slice(0, 15));
+      setSessions(prev => [currentSnapshot, ...prev.filter(s => s.id !== session.id)].slice(0, 50));
       setStatusMessage("Session restored");
   }, [tabs]);
 
@@ -249,7 +248,7 @@ function App() {
 
         {isSessionsOpen && (
             <SessionPopover 
-                sessions={sessions}
+                sessions={sessions.slice(0, 2)}
                 onSelect={handleRestoreSession}
                 onClear={() => { setSessions([]); localStorage.removeItem(STORAGE_KEY_SESSIONS); }}
                 onClose={() => setIsSessionsOpen(false)}
