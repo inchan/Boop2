@@ -1,133 +1,196 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
+import { indentUnit } from '@codemirror/language';
 import { invoke } from "@tauri-apps/api/core";
 import { CommandPalette } from './components/CommandPalette';
 import { TabBar, Tab } from './components/TabBar';
+import { ClipboardPopover } from './components/ClipboardPopover';
+import { SessionPopover, Session } from './components/SessionPopover';
 import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
 import { boopTheme } from './lib/BoopTheme';
 import './App.css';
 
-const STORAGE_KEY_TABS = 'boop_tabs_data';
-const STORAGE_KEY_ACTIVE_ID = 'boop_active_tab_id';
+const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
+const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
+
+// Resilient ID generator
+const generateId = () => {
+    try {
+        return crypto.randomUUID();
+    } catch (e) {
+        return Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+};
 
 function App() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState("");
+  const [clipboardHistory, setClipboardHistory] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  
+  const [isClipboardOpen, setIsClipboardOpen] = useState(false);
+  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
+  
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. Initial State Load (from LocalStorage)
+  // 1. Lifecycle: Startup
   useEffect(() => {
-      const savedTabs = localStorage.getItem(STORAGE_KEY_TABS);
-      const savedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-      
-      if (savedTabs) {
+      const initialize = async () => {
+          console.log("Initializing Boop2...");
+          let sessionStack: Session[] = [];
+
           try {
-              const parsed = JSON.parse(savedTabs);
-              setTabs(parsed);
-              if (savedActiveId && parsed.find((t: Tab) => t.id === savedActiveId)) {
-                  setActiveTabId(savedActiveId);
-              } else if (parsed.length > 0) {
-                  setActiveTabId(parsed[0].id);
+              // A. Load existing session stack
+              const savedStack = localStorage.getItem(STORAGE_KEY_SESSIONS);
+              if (savedStack) {
+                  sessionStack = JSON.parse(savedStack);
+              }
+
+              // B. Check for unrecovered session from previous run
+              const tmpSession = localStorage.getItem(STORAGE_KEY_CURRENT_TMP);
+              if (tmpSession) {
+                  const parsedTmp = JSON.parse(tmpSession);
+                  if (Array.isArray(parsedTmp) && parsedTmp.length > 0) {
+                      // Only archive if it has meaningful content
+                      const hasContent = parsedTmp.some(t => t.content && t.content.trim() !== "");
+                      if (hasContent) {
+                          const archivedSession: Session = {
+                              id: generateId(),
+                              timestamp: Date.now(),
+                              tabs: parsedTmp
+                          };
+                          sessionStack = [archivedSession, ...sessionStack].slice(0, 15);
+                          localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessionStack));
+                      }
+                  }
+                  localStorage.removeItem(STORAGE_KEY_CURRENT_TMP);
               }
           } catch (e) {
-              console.error("Failed to load tabs", e);
+              console.error("Failed to load sessions:", e);
           }
-      } else {
-          // Default initial tab
-          const defaultId = crypto.randomUUID();
-          setTabs([{ id: defaultId, title: "Untitled", content: "// Welcome to Boop!" }]);
-          setActiveTabId(defaultId);
-      }
 
-      // Load Scripts
-      invoke('load_scripts')
-        .then((data: any) => {
-            setScripts(data);
-            setStatusMessage(`${data.length} scripts loaded`);
-        })
-        .catch(err => {
-            console.error("Failed to load scripts:", err);
-            setStatusMessage("Error loading scripts");
-        });
+          setSessions(sessionStack);
+          
+          // C. Set Initial Tabs (Always start fresh)
+          const defaultId = generateId();
+          setTabs([{ id: defaultId, title: "Untitled", content: "" }]);
+          setActiveTabId(defaultId);
+          
+          // Mark UI as ready as soon as tabs are set, don't wait for scripts
+          setIsInitialized(true);
+
+          // D. Load Scripts (Background)
+          try {
+              const data = await invoke('load_scripts');
+              setScripts(data as ScriptModel[]);
+              setStatusMessage(`${(data as any[]).length} scripts loaded`);
+          } catch (err) {
+              console.error("Failed to load scripts:", err);
+              setStatusMessage("Error loading scripts");
+          }
+      };
+
+      initialize();
   }, []);
 
-  // 2. Persist to LocalStorage whenever tabs change
+  // 2. Lifecycle: Real-time Temp Saving
   useEffect(() => {
-      if (tabs.length > 0) {
-          localStorage.setItem(STORAGE_KEY_TABS, JSON.stringify(tabs));
-          localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeTabId);
+      if (isInitialized && tabs.length > 0) {
+          localStorage.setItem(STORAGE_KEY_CURRENT_TMP, JSON.stringify(tabs));
       }
-  }, [tabs, activeTabId]);
+  }, [tabs, isInitialized]);
 
   const activeTab = useMemo(() => 
       tabs.find(t => t.id === activeTabId) || tabs[0]
   , [tabs, activeTabId]);
 
-  // Tab Handlers
+  // Handlers
   const handleAddTab = useCallback(() => {
-      const newId = crypto.randomUUID();
+      const newId = generateId();
       const nextNum = tabs.length + 1;
-      const newTab: Tab = { id: newId, title: `Untitled ${nextNum}`, content: "" };
-      setTabs(prev => [...prev, newTab]);
+      setTabs(prev => [...prev, { id: newId, title: `Untitled ${nextNum}`, content: "" }]);
       setActiveTabId(newId);
   }, [tabs.length]);
 
   const handleCloseTab = useCallback((id: string) => {
       if (tabs.length <= 1) {
-          // If last tab, just clear it instead of removing
-          setTabs([{ id: crypto.randomUUID(), title: "Untitled", content: "" }]);
+          const newId = generateId();
+          setTabs([{ id: newId, title: "Untitled", content: "" }]);
+          setActiveTabId(newId);
           return;
       }
-      
       const newTabs = tabs.filter(t => t.id !== id);
       setTabs(newTabs);
-      
       if (activeTabId === id) {
           setActiveTabId(newTabs[newTabs.length - 1].id);
       }
   }, [tabs, activeTabId]);
 
   const handleTabContentChange = useCallback((val: string) => {
-      setTabs(prev => prev.map(t => 
-          t.id === activeTabId ? { ...t, content: val } : t
-      ));
+      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, content: val } : t));
   }, [activeTabId]);
 
   const handleRenameTab = useCallback((id: string, newTitle: string) => {
-      setTabs(prev => prev.map(t => 
-          t.id === id ? { ...t, title: newTitle } : t
-      ));
+      setTabs(prev => prev.map(t => t.id === id ? { ...t, title: newTitle } : t));
   }, []);
 
-  // 3. Shortcuts
+  const handleRestoreSession = useCallback((session: Session) => {
+      // Current tabs go to history
+      const currentSnapshot: Session = {
+          id: generateId(),
+          timestamp: Date.now(),
+          tabs: tabs
+      };
+      
+      setTabs(session.tabs);
+      if (session.tabs.length > 0) setActiveTabId(session.tabs[0].id);
+      
+      setSessions(prev => [currentSnapshot, ...prev.filter(s => s.id !== session.id)].slice(0, 15));
+      setStatusMessage("Session restored");
+  }, [tabs]);
+
+  // Clipboard Logic
+  const addToClipboardHistory = useCallback((text: string) => {
+      if (!text || text.trim() === "") return;
+      setClipboardHistory(prev => {
+          const filtered = prev.filter(item => item !== text);
+          return [text, ...filtered].slice(0, 20);
+      });
+  }, []);
+
+  const handlePasteFromHistory = useCallback((content: string) => {
+      if (!editorView) return;
+      editorView.dispatch({
+          changes: { from: 0, to: editorView.state.doc.length, insert: content }
+      });
+      setStatusMessage("Pasted from history");
+  }, [editorView]);
+
+  // Global Paste Interceptor
+  useEffect(() => {
+      const handlePaste = (e: ClipboardEvent) => {
+          const text = e.clipboardData?.getData('text');
+          if (text) addToClipboardHistory(text);
+      };
+      window.addEventListener('paste', handlePaste);
+      return () => window.removeEventListener('paste', handlePaste);
+  }, [addToClipboardHistory]);
+
+  // Shortcuts
   useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-          // Cmd+B: Script Palette
-          if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-              e.preventDefault();
-              setIsPaletteOpen(prev => !prev);
-          }
-          // Cmd+T: New Tab
-          if ((e.metaKey || e.ctrlKey) && e.key === 't') {
-              e.preventDefault();
-              handleAddTab();
-          }
-          // Cmd+W: Close Tab
-          if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
-              e.preventDefault();
-              handleCloseTab(activeTabId);
-          }
-          // Cmd+1...9: Switch Tab
+          if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); setIsPaletteOpen(prev => !prev); }
+          if ((e.metaKey || e.ctrlKey) && e.key === 't') { e.preventDefault(); handleAddTab(); }
+          if ((e.metaKey || e.ctrlKey) && e.key === 'w') { e.preventDefault(); handleCloseTab(activeTabId); }
           if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
               const index = parseInt(e.key) - 1;
-              if (tabs[index]) {
-                  setActiveTabId(tabs[index].id);
-              }
+              if (tabs[index]) setActiveTabId(tabs[index].id);
           }
       };
       window.addEventListener('keydown', handleKeyDown);
@@ -137,62 +200,33 @@ function App() {
   const runSelectedScript = useCallback(async (script: ScriptModel) => {
       setIsPaletteOpen(false);
       if (!editorView) return;
-
       const state = editorView.state;
       const sel = state.selection.main;
-      const isSelection = !sel.empty;
-
       const context: ExecutionContextData = {
           fullText: state.doc.toString(),
           selection: state.sliceDoc(sel.from, sel.to),
           selectionOffset: sel.from,
-          isSelection: isSelection
+          isSelection: !sel.empty
       };
-
       setStatusMessage(`Running ${script.name || 'Script'}...`);
-
       try {
-          const result = await runScriptAsync(script, context, (msg) => {
-              console.info(`[Script Info] ${msg}`);
-          });
-
-          const transactionSpecs: any = {};
-
-          if (isSelection) {
-              if (result.selection !== context.selection) {
-                  transactionSpecs.changes = {
-                      from: sel.from,
-                      to: sel.to,
-                      insert: result.selection
-                  };
-              }
+          const result = await runScriptAsync(script, context, (msg) => console.info(msg));
+          const transaction: any = {};
+          if (!sel.empty) {
+              if (result.selection !== context.selection) transaction.changes = { from: sel.from, to: sel.to, insert: result.selection };
           } else {
-              if (result.fullText !== context.fullText) {
-                  transactionSpecs.changes = {
-                      from: 0,
-                      to: state.doc.length,
-                      insert: result.fullText
-                  };
-              }
+              if (result.fullText !== context.fullText) transaction.changes = { from: 0, to: state.doc.length, insert: result.fullText };
           }
-
-          if (transactionSpecs.changes) {
-              editorView.dispatch(transactionSpecs);
+          if (transaction.changes) {
+              editorView.dispatch(transaction);
               setStatusMessage(`Success: ${script.name}`);
-          } else {
-              setStatusMessage(`Done (No Change): ${script.name}`);
-          }
-
-      } catch (error) {
-          console.error("Script Failed:", error);
-          setStatusMessage(`Error: ${error}`);
-      }
-
+          } else setStatusMessage(`Done: ${script.name}`);
+      } catch (error) { setStatusMessage(`Error: ${error}`); }
       editorView.focus();
-
   }, [editorView]);
 
-  if (tabs.length === 0) return null; // Wait for initial load
+  // Don't render until initialized to prevent flashing or partial states
+  if (!isInitialized) return <div style={{ background: '#1e1e1e', height: '100vh' }} />;
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -203,6 +237,25 @@ function App() {
             onSelect={runSelectedScript}
         />
 
+        {isClipboardOpen && (
+            <ClipboardPopover 
+                history={clipboardHistory}
+                onSelect={handlePasteFromHistory}
+                onRemoveItem={(idx) => setClipboardHistory(prev => prev.filter((_, i) => i !== idx))}
+                onClear={() => setClipboardHistory([])}
+                onClose={() => setIsClipboardOpen(false)}
+            />
+        )}
+
+        {isSessionsOpen && (
+            <SessionPopover 
+                sessions={sessions}
+                onSelect={handleRestoreSession}
+                onClear={() => { setSessions([]); localStorage.removeItem(STORAGE_KEY_SESSIONS); }}
+                onClose={() => setIsSessionsOpen(false)}
+            />
+        )}
+
         <TabBar 
             tabs={tabs} 
             activeTabId={activeTabId} 
@@ -210,16 +263,24 @@ function App() {
             onClose={handleCloseTab}
             onAdd={handleAddTab}
             onRename={handleRenameTab}
+            onToggleClipboard={() => { setIsClipboardOpen(!isClipboardOpen); setIsSessionsOpen(false); }}
+            onToggleSessions={() => { setIsSessionsOpen(!isSessionsOpen); setIsClipboardOpen(false); }}
+            hasHistory={clipboardHistory.length > 0}
+            hasSessions={sessions.length > 0}
         />
         
         <CodeMirror
-          key={activeTabId} // Force remount on tab switch to keep state clean
+          key={activeTabId}
           value={activeTab?.content || ""}
           height="100%"
           theme={boopTheme}
-          extensions={[javascript({ jsx: true })]}
+          extensions={[
+              javascript({ jsx: true }), 
+              EditorView.lineWrapping,
+              indentUnit.of("  "), // Use valid 2-space unit
+          ]}
           onChange={handleTabContentChange}
-          onCreateEditor={(view) => setEditorView(view)}
+          onCreateEditor={setEditorView}
           autoFocus={true}
           style={{ flex: 1, fontSize: '13px' }}
           basicSetup={{
@@ -227,21 +288,11 @@ function App() {
             foldGutter: true,
             dropCursor: true,
             allowMultipleSelections: true,
-            indentOnInput: true,
+            indentOnInput: false, // This effectively disables smart indentation
           }}
         />
         
-        {/* Status Bar */}
-        <div style={{
-            padding: '4px 10px', 
-            background: '#181818', 
-            color: '#6e7681', 
-            fontSize: '11px',
-            borderTop: '1px solid #2d2d2d',
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-        }}>
+        <div className="status-bar">
             <span>{statusMessage || "Ready"}</span>
             <span>{tabs.length} tabs • {scripts.length} scripts</span>
         </div>

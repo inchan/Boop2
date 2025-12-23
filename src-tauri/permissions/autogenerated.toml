@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-load-scripts"
+description = "Allows the load_scripts command"
+commands.allow = ["load_scripts"]
+
+[[permission]]
+identifier = "allow-greet"
+description = "Allows the greet command"
+commands.allow = ["greet"]
