@@ -1,44 +1,31 @@
 # Boop2
 
-Boop2 is a scriptable text manipulation tool for developers. Ported from the original macOS app to [Tauri](https://tauri.app/), it's faster, lighter, and cross-platform.
+A scriptable developer's notepad for quick text manipulation. Ported from the original macOS app to **Tauri 2.0**, featuring multi-tab support and background script execution.
 
-## 📥 Get Started
-1.  **Download:** Get the latest `.app` or `.dmg` from the Releases.
-2.  **Install:** Move to your `/Applications` folder.
-3.  **Run:** Open Boop2 and press `Cmd+B` to start booping!
+## 🚀 Features
+- **Multi-Tab Interface:** Work on multiple documents at once.
+- **Background Workers:** UI never freezes during heavy text processing.
+- **Session History:** Automatically archive and restore your previous work.
+- **Clipboard Tracking:** Keeps a history of your pasted snippets.
+- **95%+ Compatibility:** Supports nearly all original Boop scripts.
+
+## 📥 Getting Started
+1. **Download:** Grab the latest `.app` or `.dmg` from the Releases.
+2. **Install:** Drag to `/Applications`.
+3. **Enjoy:** Press `Cmd + B` to search and run scripts.
+
+### ⚡️ All-in-One Developer Script (BIR)
+For rapid development, use the **BIR** (Build, Install, Run) script:
+```bash
+./BIR.sh
+```
+This single command automates the entire production build, installs the app to your system, and launches Boop2 immediately.
 
 ## 📖 Documentation
-- **[User Guide](docs/USER_GUIDE.md)**: How to use the app.
-- **[Custom Scripts](docs/CustomScripts.md)**: Write your own text transformations.
-- **[Supported Modules](docs/Modules.md)**: Libraries you can use in your scripts.
-- **[Debugging](docs/Debugging.md)**: How to fix scripts that aren't working.
-
----
-
-## 🛠 Development
-To run locally:
-```bash
-# Clone the repo
-git clone https://github.com/chans/Boop2.git
-cd Boop2
-
-# Install dependencies
-npm install
-
-# Run in dev mode
-npm run tauri dev
-```
-
-## 🧪 Testing
-```bash
-npm run test
-```
-
-## 📂 Project Structure
-- `src/`: Frontend React source.
-- `src-tauri/`: Backend Rust source and scripts.
-- `docs/`: Project documentation.
-- `docs/DEVELOPMENT.md`: Technical architecture and detailed setup.
+- **[User Guide](docs/USER_GUIDE.md)**: Features and usage instructions.
+- **[Custom Scripts](docs/CustomScripts.md)**: How to write and add your own scripts.
+- **[Supported Modules](docs/Modules.md)**: Built-in libraries available to scripts.
+- **[Development](docs/DEVELOPMENT.md)**: Architecture, build process, and testing.
 
 ## ⚖️ License
 MIT License. Based on the original Boop by [Ivan Mathy](https://github.com/IvanMathy).
