@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
-import { indentUnit } from '@codemirror/language';
+import { indentUnit, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { keymap, drawSelection, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { foldGutter, foldKeymap } from '@codemirror/language';
+import { lineNumbers, highlightSpecialChars } from '@codemirror/view';
 import { invoke } from "@tauri-apps/api/core";
 import { CommandPalette } from './components/CommandPalette';
 import { TabBar, Tab } from './components/TabBar';
 import { ClipboardPopover } from './components/ClipboardPopover';
 import { SessionPopover, Session } from './components/SessionPopover';
+import { SettingsPopover, Settings } from './components/SettingsPopover';
 import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
 import { boopTheme } from './lib/BoopTheme';
@@ -14,6 +19,14 @@ import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
+const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
+
+const DEFAULT_SETTINGS: Settings = {
+    enableSessionRestore: true,
+    autoRestoreLastSession: false,
+    openNewTabOnRestore: false,
+    enableClipboardHistory: true
+};
 
 const generateId = () => {
     try { return crypto.randomUUID(); } 
@@ -27,14 +40,27 @@ function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isClipboardOpen, setIsClipboardOpen] = useState(false);
   const [isSessionsOpen, setIsSessionsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const isComposingRef = useRef(false);
 
   useEffect(() => {
       const initialize = async () => {
+          // Load settings
+          let loadedSettings = DEFAULT_SETTINGS;
+          try {
+              const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+              if (savedSettings) {
+                  loadedSettings = JSON.parse(savedSettings);
+                  setSettings(loadedSettings);
+              }
+          } catch (e) { console.error('Failed to load settings:', e); }
+
           let sessionStack: Session[] = [];
           try {
               const savedStack = localStorage.getItem(STORAGE_KEY_SESSIONS);
@@ -50,14 +76,45 @@ function App() {
               }
           } catch (e) { console.error(e); }
           setSessions(sessionStack);
-          const defaultId = generateId();
-          setTabs([{ id: defaultId, title: "Untitled", content: "" }]);
-          setActiveTabId(defaultId);
+
+          // Auto-restore last session if enabled
+          if (loadedSettings.enableSessionRestore && loadedSettings.autoRestoreLastSession && sessionStack.length > 0) {
+              const lastSession = sessionStack[0];
+              let restoredTabs = [...lastSession.tabs];
+              let newTabId: string | null = null;
+
+              // 복원 시 새로운 탭 추가 옵션
+              if (loadedSettings.openNewTabOnRestore) {
+                  const lastTab = restoredTabs[restoredTabs.length - 1];
+                  // 마지막 탭이 빈 탭이 아니면 새 탭을 맨 뒤에 추가
+                  if (!lastTab || lastTab.content.trim() !== "") {
+                      newTabId = generateId();
+                      restoredTabs = [...restoredTabs, { id: newTabId, title: "Untitled", content: "" }];
+                  }
+              }
+
+              setTabs(restoredTabs);
+              if (newTabId) {
+                  // 새 탭을 추가했으면 그 탭으로 포커스
+                  setActiveTabId(newTabId);
+              } else if (restoredTabs.length > 0) {
+                  // 새 탭이 없으면 첫 번째 탭으로 포커스
+                  setActiveTabId(restoredTabs[0].id);
+              }
+              setStatusMessage("Last session restored automatically");
+          } else {
+              const defaultId = generateId();
+              setTabs([{ id: defaultId, title: "Untitled", content: "" }]);
+              setActiveTabId(defaultId);
+          }
+
           setIsInitialized(true);
           try {
               const data = await invoke('load_scripts');
               setScripts(data as ScriptModel[]);
-              setStatusMessage(`${(data as any[]).length} scripts loaded`);
+              if (!loadedSettings.autoRestoreLastSession || sessionStack.length === 0) {
+                  setStatusMessage(`${(data as any[]).length} scripts loaded`);
+              }
           } catch (err) { setStatusMessage("Error loading scripts"); }
       };
       initialize();
@@ -68,6 +125,10 @@ function App() {
   }, [tabs, isInitialized]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId) || tabs[0], [tabs, activeTabId]);
+
+  // Composition 상태에 따라 value를 제어
+  // Composition 중에는 React state 업데이트를 차단하므로 문제없음
+  const editorValue = activeTab?.content || "";
 
   const handleAddTab = useCallback(() => {
       const newId = generateId();
@@ -103,10 +164,16 @@ function App() {
       setStatusMessage("Session restored");
   }, [tabs]);
 
+  const handleUpdateSettings = useCallback((newSettings: Settings) => {
+      setSettings(newSettings);
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(newSettings));
+  }, []);
+
   const addToClipboardHistory = useCallback((text: string) => {
+      if (!settings.enableClipboardHistory) return;
       if (!text || text.trim() === "") return;
       setClipboardHistory(prev => [text, ...prev.filter(item => item !== text)].slice(0, 20));
-  }, []);
+  }, [settings.enableClipboardHistory]);
 
   const handlePasteFromHistory = useCallback((content: string) => {
       if (!editorView) return;
@@ -168,21 +235,127 @@ function App() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} scripts={scripts} onSelect={runSelectedScript} />
-        {isClipboardOpen && <ClipboardPopover history={clipboardHistory} onSelect={handlePasteFromHistory} onRemoveItem={(idx) => setClipboardHistory(prev => prev.filter((_, i) => i !== idx))} onClear={() => setClipboardHistory([])} onClose={() => setIsClipboardOpen(false)} />}
-        {isSessionsOpen && <SessionPopover sessions={sessions.slice(0, 2)} onSelect={handleRestoreSession} onClear={() => { setSessions([]); localStorage.removeItem(STORAGE_KEY_SESSIONS); }} onClose={() => setIsSessionsOpen(false)} />}
+        {isClipboardOpen && settings.enableClipboardHistory && (
+          <ClipboardPopover
+            history={clipboardHistory}
+            onSelect={handlePasteFromHistory}
+            onRemoveItem={(idx) => setClipboardHistory(prev => prev.filter((_, i) => i !== idx))}
+            onClear={() => setClipboardHistory([])}
+            onClose={() => setIsClipboardOpen(false)}
+          />
+        )}
+        {isSessionsOpen && settings.enableSessionRestore && (
+          <SessionPopover
+            sessions={sessions.slice(0, 2)}
+            onSelect={handleRestoreSession}
+            onClear={() => { setSessions([]); localStorage.removeItem(STORAGE_KEY_SESSIONS); }}
+            onClose={() => setIsSessionsOpen(false)}
+          />
+        )}
+        {isSettingsOpen && (
+          <SettingsPopover
+            settings={settings}
+            onUpdate={handleUpdateSettings}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        )}
 
-        <TabBar 
-            tabs={tabs} activeTabId={activeTabId} onSelect={setActiveTabId} onClose={handleCloseTab} onAdd={handleAddTab} onRename={handleRenameTab}
-            onToggleClipboard={() => { setIsClipboardOpen(!isClipboardOpen); setIsSessionsOpen(false); }}
-            onToggleSessions={() => { setIsSessionsOpen(!isSessionsOpen); setIsClipboardOpen(false); }}
-            hasHistory={clipboardHistory.length > 0} hasSessions={sessions.length > 0}
+        <TabBar
+            tabs={tabs}
+            activeTabId={activeTabId}
+            onSelect={setActiveTabId}
+            onClose={handleCloseTab}
+            onAdd={handleAddTab}
+            onRename={handleRenameTab}
+            onToggleClipboard={() => { setIsClipboardOpen(!isClipboardOpen); setIsSessionsOpen(false); setIsSettingsOpen(false); }}
+            onToggleSessions={() => { setIsSessionsOpen(!isSessionsOpen); setIsClipboardOpen(false); setIsSettingsOpen(false); }}
+            onToggleSettings={() => { setIsSettingsOpen(!isSettingsOpen); setIsClipboardOpen(false); setIsSessionsOpen(false); }}
+            hasHistory={settings.enableClipboardHistory && clipboardHistory.length > 0}
+            hasSessions={settings.enableSessionRestore && sessions.length > 0}
         />
         
         <CodeMirror
-          key={activeTabId} value={activeTab?.content || ""} height="100%" theme={boopTheme}
-          extensions={[javascript({ jsx: true }), EditorView.lineWrapping, indentUnit.of("  ")]}
-          onChange={handleTabContentChange} onCreateEditor={setEditorView} autoFocus={true} style={{ flex: 1, fontSize: '13px' }}
-          basicSetup={{ lineNumbers: true, foldGutter: true, dropCursor: true, allowMultipleSelections: true, indentOnInput: false }}
+          key={activeTabId}
+          value={editorValue}
+          height="100%"
+          theme={boopTheme}
+          extensions={[
+            // 기본 에디터 기능 (basicSetup 없이 수동 추가)
+            lineNumbers(),
+            highlightSpecialChars(),
+            history(),
+            foldGutter(),
+            drawSelection(),
+            highlightActiveLine(),
+            highlightActiveLineGutter(),
+
+            // 언어 지원 (들여쓰기 제외)
+            javascript({ jsx: true }).language,
+            syntaxHighlighting(defaultHighlightStyle),
+
+            // 에디터 동작
+            EditorView.lineWrapping,
+            indentUnit.of("  "),
+
+            // 키맵 (커스텀 키를 최상단에 배치하여 최우선 순위 확보)
+            keymap.of([
+              // Enter 키를 최상단에 추가 (최우선 순위)
+              {
+                key: "Enter",
+                run: (view) => {
+                  view.dispatch(view.state.replaceSelection("\n"));
+                  return true;
+                }
+              },
+              ...historyKeymap,
+              ...foldKeymap,
+              // defaultKeymap에서 들여쓰기 관련 제외
+              ...defaultKeymap.filter(binding =>
+                binding.key !== "Enter" &&
+                !binding.key?.includes("Tab")
+              )
+            ]),
+
+            // IME Composition 처리 (Uncontrolled이므로 간소화)
+            EditorView.domEventHandlers({
+              compositionstart: () => {
+                isComposingRef.current = true;
+                return false;
+              },
+              compositionupdate: () => {
+                isComposingRef.current = true;
+                return false;
+              },
+              compositionend: (_event, view) => {
+                setTimeout(() => {
+                  isComposingRef.current = false;
+                  // Uncontrolled이므로 composition 완료 시에만 state 업데이트
+                  handleTabContentChange(view.state.doc.toString());
+                }, 50);
+                return false;
+              }
+            }),
+
+            // 문서 변경 감지 (composition 중에는 state 업데이트 안 함)
+            EditorView.updateListener.of((update) => {
+              if (update.docChanged && !isComposingRef.current) {
+                handleTabContentChange(update.state.doc.toString());
+              }
+            }),
+
+            // DOM Attributes
+            EditorView.contentAttributes.of({
+              autocomplete: 'off',
+              autocorrect: 'off',
+              autocapitalize: 'off',
+              spellcheck: 'false'
+            })
+          ]}
+          onChange={() => {}}
+          onCreateEditor={setEditorView}
+          autoFocus={true}
+          style={{ flex: 1, fontSize: '13px' }}
+          basicSetup={false}
         />
         
         <div className="status-bar">
