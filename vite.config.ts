@@ -10,7 +10,7 @@ export default defineConfig(async () => ({
 
   // 1. Prevent Vite from obscuring rust errors
   clearScreen: false,
-  
+
   // 2. Set base to relative for production builds to ensure assets load correctly in Tauri
   base: !process.env.TAURI_DEV_HOST ? "./" : "/",
 
@@ -29,6 +29,24 @@ export default defineConfig(async () => ({
     watch: {
       // 4. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
+    },
+  },
+
+  // vitest configuration
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: [],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src-tauri/',
+        'dist/',
+        '**/*.config.*',
+        '**/*.d.ts',
+      ],
     },
   },
 }));

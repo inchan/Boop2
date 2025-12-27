@@ -1,137 +1,144 @@
 .tab-bar-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #181818;
-    height: 32px;
-    border-bottom: 1px solid #2d2d2d;
-    user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #181818;
+  height: 32px;
+  border-bottom: 1px solid #2d2d2d;
+  user-select: none;
 }
 
 .tabs-list {
-    display: flex;
-    height: 100%;
-    align-items: flex-end;
-    overflow-x: auto;
-    flex: 1;
-    padding-left: 10px;
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  overflow-x: auto;
+  flex: 1;
+  padding-left: 10px;
 }
 
 .tabs-list::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .tab-item {
-    display: flex;
-    align-items: center;
-    height: 28px;
-    padding: 0 12px;
-    background: #181818;
-    color: #858585;
-    font-size: 11px;
-    border-right: 1px solid #2d2d2d;
-    cursor: default;
-    max-width: 150px;
-    min-width: 80px;
-    flex-shrink: 0;
-    transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  background: #181818;
+  color: #858585;
+  font-size: 11px;
+  border-right: 1px solid #2d2d2d;
+  cursor: default;
+  max-width: 150px;
+  min-width: 80px;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .tab-item:hover {
-    background: #252525;
-    color: #cccccc;
+  background: #252525;
+  color: #cccccc;
 }
 
 .tab-item.active {
-    background: #1e1e1e;
-    color: #ffffff;
-    height: 32px;
-    border-bottom: none;
+  background: #1e1e1e;
+  color: #ffffff;
+  height: 32px;
+  border-bottom: none;
 }
 
 .tab-title {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-right: 8px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
 }
 
 .tab-edit-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    font-size: 11px;
-    font-family: inherit;
-    outline: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
 }
 
 .tab-close {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    opacity: 0;
-    transition: opacity 0.2s, background 0.2s;
-    margin-left: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+  margin-left: 4px;
 }
 
-.tab-item:hover .tab-close, .tab-item.active .tab-close {
-    opacity: 0.6;
+.tab-item:hover .tab-close,
+.tab-item.active .tab-close {
+  opacity: 0.6;
 }
 
 .tab-close:hover {
-    opacity: 1 !important;
-    background: #3a3a3a;
+  opacity: 1 !important;
+  background: #3a3a3a;
 }
 
 .add-tab-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    color: #858585;
-    cursor: pointer;
-    font-size: 18px;
-    transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  color: #858585;
+  cursor: pointer;
+  font-size: 18px;
+  transition: color 0.2s;
 }
 
 .add-tab-btn:hover {
-    color: #ffffff;
+  color: #ffffff;
 }
 
 .tab-bar-actions {
-    display: flex;
-    align-items: center;
-    padding: 0 8px;
-    height: 100%;
-    background: #181818;
-    border-left: 1px solid #2d2d2d;
-    z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 100%;
+  background: #181818;
+  border-left: 1px solid #2d2d2d;
+  z-index: 10;
 }
 
 .action-btn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #858585;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.2s, color 0.2s;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #858585;
+  cursor: pointer;
+  border-radius: 4px;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .action-btn:hover {
-    background: #2d2d2d;
-    color: #ffffff;
+  background: #2d2d2d;
+  color: #ffffff;
 }

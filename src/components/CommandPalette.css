@@ -1,126 +1,129 @@
 .command-palette-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.3);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 80px;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  z-index: 1000;
 }
 
 .command-palette {
-    width: 550px;
-    max-width: 90%;
-    background: #252525;
-    border: 1px solid #454545;
-    border-radius: 10px;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  width: 550px;
+  max-width: 90%;
+  background: #252525;
+  border: 1px solid #454545;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .command-input {
-    width: 100%;
-    padding: 14px 18px;
-    font-size: 16px;
-    background: #2d2d2d;
-    border: none;
-    color: #e0e0e0;
-    outline: none;
-    border-bottom: 1px solid #333;
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 16px;
+  background: #2d2d2d;
+  border: none;
+  color: #e0e0e0;
+  outline: none;
+  border-bottom: 1px solid #333;
 }
 
 .command-list {
-    max-height: 350px;
-    overflow-y: auto;
-    margin: 0;
-    padding: 6px 0;
-    list-style: none;
+  max-height: 350px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
 }
 
 .list-section-header {
-    padding: 8px 18px 4px 18px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #6a6a6a;
-    letter-spacing: 0.5px;
+  padding: 8px 18px 4px 18px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #6a6a6a;
+  letter-spacing: 0.5px;
 }
 
 .command-item {
-    padding: 8px 18px;
-    cursor: pointer;
-    color: #cccccc;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
+  padding: 8px 18px;
+  cursor: pointer;
+  color: #cccccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
 }
 
 .command-item.active {
-    background: #007aff;
-    color: white;
+  background: #007aff;
+  color: white;
 }
 
-.command-item.active .command-desc, .command-item.active .recent-badge {
-    color: #e0e0e0;
-    opacity: 0.9;
+.command-item.active .command-desc,
+.command-item.active .recent-badge {
+  color: #e0e0e0;
+  opacity: 0.9;
 }
 
 .command-desc {
-    font-size: 12px;
-    opacity: 0.5;
-    margin-left: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* max-width is handled by flex container now */
+  font-size: 12px;
+  opacity: 0.5;
+  margin-left: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* max-width is handled by flex container now */
 }
 
 .recent-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .recent-badge {
-    font-size: 10px;
-    opacity: 0.4;
-    font-style: italic;
+  font-size: 10px;
+  opacity: 0.4;
+  font-style: italic;
 }
 
 .remove-recent-btn {
-    background: transparent;
-    border: none;
-    color: #999;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 0 4px;
-    line-height: 1;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-    transition: opacity 0.2s, background 0.2s;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
 }
 
 .remove-recent-btn:hover {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .command-item.active .remove-recent-btn {
-    color: white;
+  color: white;
 }
 
 .command-item.active .remove-recent-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
