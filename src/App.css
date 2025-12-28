@@ -50,6 +50,18 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* CodeMirror Editor - Enable Scrolling */
+.cm-editor {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+  flex: 1;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 12px;

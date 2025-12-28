@@ -26,8 +26,9 @@ const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
 
-// IME composition 상태를 컴포넌트 외부에서 관리
-// CodeMirror extension은 재렌더링과 무관하게 동작하므로 모듈 레벨 변수 사용
+// IME composition 상태 (CodeMirror extension용 모듈 스코프 변수)
+// Note: CodeMirror extensions는 React lifecycle과 독립적으로 동작하며,
+// 이 값은 렌더링에 영향을 주지 않으므로 모듈 레벨 관리가 적합합니다.
 let isComposing = false;
 
 const DEFAULT_SETTINGS: Settings = {
@@ -405,14 +406,15 @@ function App() {
           ]),
 
           // IME Composition 처리 (Uncontrolled이므로 간소화)
+          // CodeMirror extension은 React lifecycle과 독립적으로 동작하므로
+          // 모듈 레벨 변수 사용이 적합합니다.
+          /* eslint-disable react-hooks/globals */
           EditorView.domEventHandlers({
             compositionstart: () => {
-              // eslint-disable-next-line react-hooks/globals
               isComposing = true;
               return false;
             },
             compositionupdate: () => {
-              // eslint-disable-next-line react-hooks/globals
               isComposing = true;
               return false;
             },
@@ -432,6 +434,7 @@ function App() {
               handleTabContentChange(update.state.doc.toString());
             }
           }),
+          /* eslint-enable react-hooks/globals */
 
           // DOM Attributes
           EditorView.contentAttributes.of({
@@ -444,7 +447,7 @@ function App() {
         onChange={() => {}}
         onCreateEditor={setEditorView}
         autoFocus={true}
-        style={{ flex: 1, fontSize: '13px' }}
+        style={{ flex: 1, fontSize: '13px', minHeight: 0, overflow: 'hidden' }}
         basicSetup={false}
       />
 
