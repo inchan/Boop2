@@ -78,44 +78,42 @@ fn load_scripts(app_handle: tauri::AppHandle) -> Result<Vec<ScriptMetadata>, Str
                     let mut file_count = 0;
                     let mut js_count = 0;
 
-                    for entry in entries {
-                        if let Ok(entry) = entry {
-                            let p = entry.path();
-                            file_count += 1;
-                            let file_name = p.file_name().unwrap_or_default().to_string_lossy();
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        file_count += 1;
+                        let file_name = p.file_name().unwrap_or_default().to_string_lossy();
 
-                            if p.extension().and_then(|s| s.to_str()) == Some("js") {
-                                js_count += 1;
-                                match fs::read_to_string(&p) {
-                                    Ok(content) => {
-                                        // Parse JSON first
-                                        match parse_metadata(&content) {
-                                            Ok(json_meta) => {
-                                                // Convert to full metadata
-                                                let meta = ScriptMetadata {
-                                                    name: json_meta.name,
-                                                    description: json_meta.description,
-                                                    icon: json_meta.icon,
-                                                    tags: json_meta.tags,
-                                                    path: p.to_string_lossy().to_string(),
-                                                    full_text: content,
-                                                };
-                                                scripts.push(meta);
-                                            }
-                                            Err(e_msg) => {
-                                                debug_log.push_str(&format!(
-                                                    "  [Parse Error] {}: {}\n",
-                                                    file_name, e_msg
-                                                ));
-                                            }
+                        if p.extension().and_then(|s| s.to_str()) == Some("js") {
+                            js_count += 1;
+                            match fs::read_to_string(&p) {
+                                Ok(content) => {
+                                    // Parse JSON first
+                                    match parse_metadata(&content) {
+                                        Ok(json_meta) => {
+                                            // Convert to full metadata
+                                            let meta = ScriptMetadata {
+                                                name: json_meta.name,
+                                                description: json_meta.description,
+                                                icon: json_meta.icon,
+                                                tags: json_meta.tags,
+                                                path: p.to_string_lossy().to_string(),
+                                                full_text: content,
+                                            };
+                                            scripts.push(meta);
+                                        }
+                                        Err(e_msg) => {
+                                            debug_log.push_str(&format!(
+                                                "  [Parse Error] {}: {}\n",
+                                                file_name, e_msg
+                                            ));
                                         }
                                     }
-                                    Err(e) => {
-                                        debug_log.push_str(&format!(
-                                            "  [Read Error] {}: {}\n",
-                                            file_name, e
-                                        ));
-                                    }
+                                }
+                                Err(e) => {
+                                    debug_log.push_str(&format!(
+                                        "  [Read Error] {}: {}\n",
+                                        file_name, e
+                                    ));
                                 }
                             }
                         }
@@ -153,27 +151,25 @@ fn parse_metadata(content: &str) -> Result<ScriptJson, String> {
             Some(end) => {
                 let json_str = &content[start + start_tag.len()..end];
                 match serde_json::from_str::<ScriptJson>(json_str) {
-                    Ok(meta) => return Ok(meta),
-                    Err(e) => {
-                        return Err(format!(
-                            "JSON Parse Error: {}. Snippet: >>>{}<<<",
-                            e,
-                            json_str.trim()
-                        ))
-                    }
+                    Ok(meta) => Ok(meta),
+                    Err(e) => Err(format!(
+                        "JSON Parse Error: {}. Snippet: >>>{}<<<",
+                        e,
+                        json_str.trim()
+                    )),
                 }
             }
             None => {
                 let snippet: String = content.chars().take(100).collect();
-                return Err(format!(
+                Err(format!(
                     "Found '/**' but missing '**/'. Start snippet: >>>{}<<<",
                     snippet
-                ));
+                ))
             }
         },
         None => {
             let snippet: String = content.chars().take(50).collect();
-            return Err(format!("Missing '/**'. Start snippet: >>>{}<<<", snippet));
+            Err(format!("Missing '/**'. Start snippet: >>>{}<<<", snippet))
         }
     }
 }
