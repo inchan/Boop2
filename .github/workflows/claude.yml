@@ -19,6 +19,14 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          custom_instructions: |
+            작업 완료 후 반드시 다음을 수행하세요:
+            1. 변경사항을 커밋합니다
+            2. 브랜치를 원격에 푸시합니다
+            3. main 브랜치를 base로 하는 Pull Request를 생성합니다
+            4. PR 설명에 변경사항 요약을 포함합니다
