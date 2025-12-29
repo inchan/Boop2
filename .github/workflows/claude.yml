@@ -35,10 +35,10 @@ jobs:
         github.event.pull_request.author_association == 'COLLABORATOR'
       ) &&
       (
-        (github.event_name == 'issue_comment' && contains(toLower(github.event.comment.body), '@claude')) ||
-        (github.event_name == 'issues' && contains(toLower(github.event.issue.body), '@claude')) ||
-        (github.event_name == 'pull_request_review_comment' && contains(toLower(github.event.comment.body), '@claude')) ||
-        (github.event_name == 'pull_request' && contains(toLower(github.event.pull_request.body), '@claude'))
+        (github.event_name == 'issue_comment' && (contains(github.event.comment.body, '@claude') || contains(github.event.comment.body, '@Claude'))) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.body, '@Claude'))) ||
+        (github.event_name == 'pull_request_review_comment' && (contains(github.event.comment.body, '@claude') || contains(github.event.comment.body, '@Claude'))) ||
+        (github.event_name == 'pull_request' && (contains(github.event.pull_request.body, '@claude') || contains(github.event.pull_request.body, '@Claude')))
       )
     runs-on: ubuntu-latest
 

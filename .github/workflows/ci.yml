@@ -71,6 +71,8 @@ jobs:
 
   build-check:
     name: Build Verification (${{ matrix.platform }})
+    # Only run on PRs, not on push to main/dev
+    if: github.event_name == 'pull_request'
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
