@@ -57,7 +57,5 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@beta
         with:
-          use_oauth: true
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           timeout_minutes: "60"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
