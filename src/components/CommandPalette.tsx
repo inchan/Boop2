@@ -23,7 +23,7 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
     const stored = localStorage.getItem(RECENT_SCRIPTS_KEY);
     if (stored) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 의존성 체인 독립적 (isOpen -> recentPaths)
         setRecentPaths(JSON.parse(stored));
       } catch (error) {
         console.error('Failed to parse recents', error);
@@ -62,14 +62,14 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
   }, [query, recentScripts, sortedScripts, filteredResults]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 리스트 변경 시 선택 인덱스 리셋 (의존성 순환 없음)
     setSelectedIndex(0);
   }, [finalDisplayList]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 팔레트 열릴 때 query 초기화 (의존성 순환 없음)
       setQuery('');
     }
   }, [isOpen]);

@@ -6,7 +6,10 @@ You can extend Boop's functionality by writing your own JavaScript scripts.
 To add custom scripts, place your `.js` files in the following directory:
 
 *   **macOS:** `~/Library/Application Support/com.chans.boop2/scripts/`
-    *(Note: You may need to create the `scripts` folder if it doesn't exist)*
+*   **Linux:** `~/.config/com.chans.boop2/scripts/`
+*   **Windows:** `%APPDATA%\com.chans.boop2\scripts\`
+
+*(Note: You may need to create the `scripts` folder if it doesn't exist)*
 
 ## File Format
 Each script must start with a metadata block in comments, followed by a `main` function.
@@ -41,6 +44,31 @@ function main(input) {
 
 ## Supported Icons
 Boop Tauri supports the same icon set as the original app (e.g., `quote`, `code`, `b64`, etc.).
+
+## Scripting API Reference
+
+The `main(input)` function receives an `input` object that serves as the interface between your script and the Boop2 editor.
+
+### The `input` Object
+- **`input.text` (Getter/Setter)**: 
+  - If text is selected, returns the selection.
+  - If no text is selected, returns the full document text.
+  - Setting this property replaces the selection (if active) or the entire document.
+- **`input.fullText` (Getter/Setter)**: Always returns or replaces the entire document text, regardless of selection.
+- **`input.selection` (Getter/Setter)**: Always returns or replaces only the currently selected text.
+- **`input.insert(string)`**: Inserts a string at the current cursor position or replaces the current selection.
+- **`input.postInfo(string)`**: Displays a temporary toast notification in the status bar.
+- **`input.postError(string)`**: Displays an error message alert.
+
+### Global Shimmed Variables
+To maintain compatibility with original Boop scripts that occasionally use undeclared variables for intermediate steps, the following variables are pre-injected into the script scope:
+`buf`, `i`, `url`, `R`, `G`, `B`, `result`, `res`, `data`
+
+## Debugging Scripts
+Since Boop2 scripts run in a **Web Worker**, standard console logs might not always be visible in the main process.
+- Use `input.postInfo("Message")` to show a quick toast message for debugging variables.
+- Use `input.postError("Error")` to display error alerts.
+- You can also use `console.log()` while running in development mode (`npm run tauri dev`) and inspecting the Web Worker console.
 
 ## Troubleshooting
 If your script doesn't appear:

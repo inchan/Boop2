@@ -24,4 +24,4 @@ For backward compatibility with older scripts, the following paths are also supp
 *   ...and other paths found in the original `scripts/lib` folder.
 
 ## Requesting New Modules
-If a script fails with `Module not found`, please check `RequireShim.ts` in the source code or open an issue to request adding it.
+If a script fails with `Module not found`, please check [RequireShim.ts](../src/lib/RequireShim.ts) in the source code or open an issue to request adding it. You can see how libraries are mapped and shimmed for compatibility there.

@@ -29,11 +29,29 @@ fn load_scripts(app_handle: tauri::AppHandle) -> Result<Vec<ScriptMetadata>, Str
     let mut debug_log = String::new();
     let mut search_paths = Vec::new();
 
+    // 1. Bundled resource scripts (production)
     match app_handle.path().resolve("scripts", tauri::path::BaseDirectory::Resource) {
         Ok(path) => search_paths.push(path),
         Err(e) => debug_log.push_str(&format!("Resource resolve failed: {}\n", e)),
     }
 
+    // 2. User custom scripts directory (platform-specific)
+    // - macOS: ~/Library/Application Support/com.chans.boop2/scripts/
+    // - Linux: ~/.config/com.chans.boop2/scripts/
+    // - Windows: %APPDATA%\com.chans.boop2\scripts\
+    match app_handle.path().app_config_dir() {
+        Ok(config_dir) => {
+            let user_scripts_dir = config_dir.join("scripts");
+            debug_log.push_str(&format!("[User Scripts] Path: {:?}\n", user_scripts_dir));
+            if !user_scripts_dir.exists() {
+                debug_log.push_str("[User Scripts] Directory does not exist. Create it to add custom scripts.\n");
+            }
+            search_paths.push(user_scripts_dir);
+        },
+        Err(e) => debug_log.push_str(&format!("App config dir failed: {}\n", e)),
+    }
+
+    // 3. Development paths
     search_paths.push(PathBuf::from("scripts"));
     search_paths.push(PathBuf::from("src-tauri/scripts"));
     

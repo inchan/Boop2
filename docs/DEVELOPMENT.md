@@ -20,29 +20,80 @@ Boop2 follows a decoupled architecture between the UI, the Script Engine, and th
 - **Script Loader:** Scans `src-tauri/scripts/` and parses metadata from JS comments.
 - **Capabilities:** Permissions for custom commands are explicitly defined in `src-tauri/permissions/` and `src-tauri/capabilities/`.
 
-## 🛠 Project Structure
-- `src/` : React components, hooks, and UI logic.
-- `src/lib/` : Core logic (Worker, Runner, Shims, Themes).
-- `src-tauri/src/` : Rust backend entry point and command handlers.
-- `src-tauri/scripts/` : Original JavaScript scripts.
-- `src-tauri/permissions/` : Tauri 2.0 command permission definitions.
-- `docs/` : All user and developer documentation.
+## 💾 State Persistence
+Boop2 uses `localStorage` for all user-specific data. This ensures a "local-first" experience without a backend database.
 
-## 🚀 Build & Run
-```bash
-# Development (with Hot Reload)
-npm run tauri dev
+### Storage Keys
+- `boop_settings_v1`: User preferences (auto-restore, clipboard history, etc.).
+- `boop_sessions_stack_v3`: An array of the last 50 `Session` objects.
+- `boop_current_session_tmp_v3`: The current tab state, synced on every change for crash recovery.
 
-# Production Build & Install to /Applications (MacOS)
-./scripts/BIR.sh
+### Data Structures
+```typescript
+interface Tab {
+  id: string;
+  title: string;
+  content: string;
+}
+
+interface Session {
+  id: string;
+  timestamp: number;
+  tabs: Tab[];
+}
 ```
 
+## 🛠 Expanding the Application
+
+### Adding New JavaScript Libraries
+To add a new library available to custom scripts:
+1. Install via npm: `npm install <lib-name>`.
+2. Map it in `src/lib/RequireShim.ts` within the `modules` object.
+3. Add the library's typical Boop filename (e.g., `./lib/mylib.js`) as a key for backward compatibility.
+
+### Adding New Rust Commands
+1. Define the command in `src-tauri/src/lib.rs` using `#[tauri::command]`.
+2. Register it in the `generate_handler!` macro in `run()`.
+3. Call it from React using `@tauri-apps/api/core`'s `invoke` function.
+
+## 🎨 Design System
+Boop2 follows a minimalist "Boop Dark" aesthetic.
+
+- **Typography:**
+  - Primary: `SF Mono`, `Menlo`, `Monaco`, `monospace`.
+  - UI: `SF Pro`, `Inter`, `System UI`.
+- **Theme:**
+  - Background: `#1e1e1e` (Editor), `#111111` (Status Bar/Tabs).
+  - Selection: Active line highlight is subtle to prioritize readability.
+
 ## 🧪 Testing
-We use **Vitest** for comprehensive script auditing.
+We use **Vitest** for comprehensive script auditing and frontend logic verification.
 ```bash
 # Run all tests
 npm run test
 ```
 - `src/lib/ScriptExecution.test.ts`: Tests the API provided to scripts.
 - `src/lib/Integration.test.ts`: Verifies individual script logic.
-- `src/lib/BulkScript.test.ts`: Audits all 70+ scripts for runtime and strict-mode compatibility.
+- `src/lib/BulkScript.test.ts`: Audits all 72 built-in scripts for runtime and strict-mode compatibility.
+
+## ⚙️ CI/CD Pipeline
+Boop2 utilizes GitHub Actions for automated quality assurance and distribution.
+
+### 1. Continuous Integration (`ci.yml`)
+Triggered on every push and PR to `main` and `dev` branches.
+- **Frontend Check:** Runs `npm audit`, `tsc`, `lint`, `format:check`, and `test`.
+- **Backend Check:** Runs `cargo fmt` and `cargo clippy` with strict warning levels.
+- **Build Verification:** Verifies that the app builds correctly on **Ubuntu**, **macOS**, and **Windows**.
+
+### 2. Automated Release (`release.yml`)
+Triggered when a version tag (e.g., `v*.*.*`) is pushed.
+- Builds production binaries for multiple platforms.
+- Automatically handles macOS Universal binaries (x86_64 + ARM).
+- Generates a GitHub Release and uploads all artifacts (.dmg, .AppImage, .deb, .msi).
+
+## 🪲 Debugging the App
+If you are developing the application itself:
+1. Run `npm run tauri dev`.
+2. Right-click anywhere in the window and select **Inspect Element**.
+3. Use the **Console** tab to view application logs and errors.
+4. For Rust backend logs, check your terminal output.

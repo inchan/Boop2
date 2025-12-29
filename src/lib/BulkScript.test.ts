@@ -39,6 +39,27 @@ describe('Global Script Compatibility Audit', () => {
         initialInput = '{"test": "data", "count": 123}';
       } else if (fileName.includes('URL') || fileName.includes('HTML')) {
         initialInput = 'hello%20world%3F';
+      } else if (fileName === 'HexToASCII.js') {
+        initialInput = '48656C6C6F'; // "Hello" in hex
+      } else if (fileName === 'SumAll.js') {
+        initialInput = '1\n2\n3\n4\n5'; // List of numbers
+      } else if (fileName === 'ASCIIToHex.js') {
+        initialInput = 'Hello'; // Plain text for hex conversion
+      } else if (fileName === 'BinaryToDecimal.js') {
+        initialInput = '1010'; // Binary number
+      } else if (fileName === 'DecimalToBinary.js') {
+        initialInput = '10'; // Decimal number
+      } else if (fileName === 'DecimalToHex.js') {
+        initialInput = '255'; // Decimal number
+      } else if (fileName === 'HexToDecimal.js') {
+        initialInput = 'FF'; // Hex number
+      } else if (fileName === 'DateToTimestamp.js' || fileName === 'DateToUTC.js') {
+        initialInput = '2025-01-15T12:00:00Z'; // ISO date string
+      } else if (fileName === 'JWTDecode.js') {
+        initialInput =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'; // Valid JWT
+      } else if (fileName === 'PhpUnserialize.js') {
+        initialInput = 's:11:"hello world";'; // PHP serialized string
       }
 
       const adapter = new TestAdapter(initialInput);
