@@ -6,30 +6,17 @@ on:
   pull_request_review_comment:
     types: [created]
 
-# 같은 이슈/PR에 대해 중복 실행 방지
 concurrency:
   group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   claude:
-    # 조건:
-    # 1. 봇이 아닌 사용자
-    # 2. 권한 있는 사용자 (OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, 또는 레포 소유자)
-    # 3. @claude 멘션 포함 (대소문자 무시)
-    if: |
-      github.event.sender.type != 'Bot' &&
-      (
-        github.event.comment.author_association == 'OWNER' ||
-        github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'COLLABORATOR' ||
-        github.event.comment.author_association == 'CONTRIBUTOR' ||
-        github.actor == github.repository_owner
-      ) &&
-      (
-        contains(github.event.comment.body, '@claude') ||
-        contains(github.event.comment.body, '@Claude')
-      )
+    # @claude 멘션 + 봇 아님 + 권한 있음
+    if: >-
+      contains(github.event.comment.body, '@claude') &&
+      github.event.sender.type == 'User' &&
+      github.event.comment.author_association != 'NONE'
     runs-on: ubuntu-latest
 
     permissions:
