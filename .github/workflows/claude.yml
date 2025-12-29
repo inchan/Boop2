@@ -15,14 +15,16 @@ jobs:
   claude:
     # 조건:
     # 1. 봇이 아닌 사용자
-    # 2. 권한 있는 사용자 (OWNER, MEMBER, COLLABORATOR)
+    # 2. 권한 있는 사용자 (OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, 또는 레포 소유자)
     # 3. @claude 멘션 포함 (대소문자 무시)
     if: |
       github.event.sender.type != 'Bot' &&
       (
         github.event.comment.author_association == 'OWNER' ||
         github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'COLLABORATOR'
+        github.event.comment.author_association == 'COLLABORATOR' ||
+        github.event.comment.author_association == 'CONTRIBUTOR' ||
+        github.actor == github.repository_owner
       ) &&
       (
         contains(github.event.comment.body, '@claude') ||
