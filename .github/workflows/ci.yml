@@ -82,7 +82,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, macos-latest, windows-latest]
+        include:
+          - platform: ubuntu-22.04
+            bundles: none
+          - platform: macos-latest
+            bundles: app
+          - platform: windows-latest
+            bundles: none
 
     steps:
       - name: Checkout repository
@@ -124,4 +130,4 @@ jobs:
         run: npm run build
 
       - name: Build Tauri app (test only)
-        run: npm run tauri build -- --bundles none
+        run: npm run tauri build -- --bundles ${{ matrix.bundles }}
