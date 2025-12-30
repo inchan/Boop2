@@ -475,10 +475,7 @@ function App() {
       </div>
 
       {updateInfo?.available && (
-        <UpdateNotification
-          updateInfo={updateInfo}
-          onDismiss={() => setUpdateInfo(null)}
-        />
+        <UpdateNotification updateInfo={updateInfo} onDismiss={() => setUpdateInfo(null)} />
       )}
     </div>
   );

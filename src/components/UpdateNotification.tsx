@@ -37,7 +37,13 @@ export function UpdateNotification({ updateInfo, onDismiss }: Props) {
     <div className="update-notification">
       <div className="update-content">
         <div className="update-icon">
-          {state === 'downloading' ? '⏳' : state === 'ready' ? '✅' : state === 'error' ? '❌' : '🎉'}
+          {state === 'downloading'
+            ? '⏳'
+            : state === 'ready'
+              ? '✅'
+              : state === 'error'
+                ? '❌'
+                : '🎉'}
         </div>
 
         <div className="update-info">

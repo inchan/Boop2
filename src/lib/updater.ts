@@ -19,9 +19,7 @@ export interface UpdateProgress {
  * @param options - Optional configuration for the update check
  * @returns UpdateInfo object with update details, or null if check fails
  */
-export async function checkForUpdates(options?: {
-  timeout?: number;
-}): Promise<UpdateInfo> {
+export async function checkForUpdates(options?: { timeout?: number }): Promise<UpdateInfo> {
   try {
     const update = await check({
       timeout: options?.timeout ?? 30000,
