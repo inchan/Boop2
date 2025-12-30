@@ -5,6 +5,7 @@ export interface Settings {
   autoRestoreLastSession: boolean;
   openNewTabOnRestore: boolean;
   enableClipboardHistory: boolean;
+  enableAutoUpdate: boolean;
 }
 
 interface Props {
@@ -82,6 +83,19 @@ export function SettingsPopover({ settings, onUpdate, onClose }: Props) {
                 onChange={() => handleToggle('enableClipboardHistory')}
               />
               <span>클립보드 히스토리 사용</span>
+            </label>
+          </div>
+
+          <div className="settings-section">
+            <h4>업데이트</h4>
+
+            <label className="settings-item">
+              <input
+                type="checkbox"
+                checked={settings.enableAutoUpdate}
+                onChange={() => handleToggle('enableAutoUpdate')}
+              />
+              <span>자동 업데이트 확인</span>
             </label>
           </div>
         </div>

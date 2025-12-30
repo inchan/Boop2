@@ -20,6 +20,8 @@ import { SettingsPopover, Settings } from './components/SettingsPopover';
 import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
 import { boopTheme } from './lib/BoopTheme';
+import { UpdateNotification } from './components/UpdateNotification';
+import { checkForUpdates, type UpdateInfo } from './lib/updater';
 import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
@@ -36,6 +38,7 @@ const DEFAULT_SETTINGS: Settings = {
   autoRestoreLastSession: false,
   openNewTabOnRestore: false,
   enableClipboardHistory: true,
+  enableAutoUpdate: true,
 };
 
 const generateId = () => {
@@ -60,6 +63,7 @@ function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -144,6 +148,18 @@ function App() {
         }
       } catch {
         setStatusMessage('Error loading scripts');
+      }
+
+      // Check for updates if enabled
+      if (loadedSettings.enableAutoUpdate) {
+        try {
+          const info = await checkForUpdates();
+          if (info.available) {
+            setUpdateInfo(info);
+          }
+        } catch (error) {
+          console.error('[Updater] Check failed:', error);
+        }
       }
     };
     initialize();
@@ -457,6 +473,13 @@ function App() {
           {tabs.length} tabs • {scripts.length} scripts
         </span>
       </div>
+
+      {updateInfo?.available && (
+        <UpdateNotification
+          updateInfo={updateInfo}
+          onDismiss={() => setUpdateInfo(null)}
+        />
+      )}
     </div>
   );
 }
