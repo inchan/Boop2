@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { indentUnit, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { indentUnit } from '@codemirror/language';
 import {
   keymap,
   drawSelection,
@@ -394,10 +393,6 @@ function App() {
           drawSelection(),
           highlightActiveLine(),
           highlightActiveLineGutter(),
-
-          // 언어 지원 (들여쓰기 제외)
-          javascript({ jsx: true }).language,
-          syntaxHighlighting(defaultHighlightStyle),
 
           // 에디터 동작
           EditorView.lineWrapping,
