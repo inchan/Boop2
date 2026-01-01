@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish:
+  build:
     permissions:
       contents: write
     strategy:
@@ -77,3 +77,101 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+          # Don't upload latest.json from individual builds (will be merged later)
+          includeUpdaterJson: false
+
+      - name: Upload updater artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-${{ matrix.platform }}
+          path: |
+            src-tauri/target/**/release/bundle/**/*.sig
+            src-tauri/target/**/release/bundle/**/*.tar.gz
+            src-tauri/target/**/release/bundle/**/*.AppImage
+            src-tauri/target/**/release/bundle/**/*-setup.exe
+          if-no-files-found: ignore
+
+  # Merge updater JSON after all builds complete
+  merge-updater:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get release info
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create merged latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          # Get signatures from release assets
+          REPO="${GITHUB_REPOSITORY}"
+          TAG="${GITHUB_REF_NAME}"
+
+          # Fetch signatures
+          MACOS_SIG=$(curl -sL "https://github.com/${REPO}/releases/download/${TAG}/Boop2_universal.app.tar.gz.sig" | cat)
+          LINUX_SIG=$(curl -sL "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_amd64.AppImage.sig" | cat)
+          WINDOWS_SIG=$(curl -sL "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_x64-setup.exe.sig" | cat)
+
+          # Create latest.json with all platforms
+          cat > latest.json << EOF
+          {
+            "version": "${VERSION}",
+            "notes": "See the release notes at https://github.com/${REPO}/releases/tag/${TAG}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "darwin-universal": {
+                "signature": "${MACOS_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_universal.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "${MACOS_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_universal.app.tar.gz"
+              },
+              "darwin-aarch64": {
+                "signature": "${MACOS_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_universal.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "${LINUX_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_amd64.AppImage"
+              },
+              "linux-x86_64-appimage": {
+                "signature": "${LINUX_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_amd64.AppImage"
+              },
+              "windows-x86_64": {
+                "signature": "${WINDOWS_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_x64-setup.exe"
+              },
+              "windows-x86_64-nsis": {
+                "signature": "${WINDOWS_SIG}",
+                "url": "https://github.com/${REPO}/releases/download/${TAG}/Boop2_${VERSION}_x64-setup.exe"
+              }
+            }
+          }
+          EOF
+
+          cat latest.json
+
+      - name: Upload latest.json to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Delete existing latest.json if exists
+          gh release delete-asset "${GITHUB_REF_NAME}" latest.json --yes --repo "${GITHUB_REPOSITORY}" 2>/dev/null || true
+
+          # Upload new latest.json
+          gh release upload "${GITHUB_REF_NAME}" latest.json --repo "${GITHUB_REPOSITORY}" --clobber
