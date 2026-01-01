@@ -1,0 +1,129 @@
+/* ============================================
+   Slate.js Editor Theme - Boop Style
+   Based on BoopTheme.ts color scheme
+   ============================================ */
+
+/* Editor Container */
+.slate-editor-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+  background-color: #1e1e1e;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* Line Numbers Gutter */
+.slate-gutter {
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  color: #858585;
+  text-align: right;
+  padding: 10px 0;
+  user-select: none;
+  -webkit-user-select: none;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.slate-line-number {
+  padding: 0 12px 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  height: calc(13px * 1.6);
+}
+
+.slate-line-number.active {
+  color: #c6c6c6;
+}
+
+/* Main Editor Area */
+.slate-editor {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  caret-color: #ffffff;
+  outline: none;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 0;
+}
+
+.slate-editor:focus {
+  outline: none;
+}
+
+/* Editable Content */
+.slate-editor [data-slate-editor="true"] {
+  min-height: 100%;
+  outline: none;
+}
+
+/* Individual Lines (Paragraphs) */
+.slate-paragraph {
+  position: relative;
+  min-height: calc(13px * 1.6);
+  margin: 0;
+  padding: 0;
+}
+
+/* Active Line Highlight */
+.slate-paragraph.active-line {
+  background-color: #ffffff0b;
+}
+
+/* Selection Styling */
+.slate-editor ::selection {
+  background-color: #264f78;
+}
+
+.slate-editor ::-moz-selection {
+  background-color: #264f78;
+}
+
+/* Placeholder Text */
+.slate-placeholder {
+  color: #5a5a5a;
+  font-style: italic;
+  pointer-events: none;
+  position: absolute;
+  top: 10px;
+  left: 16px;
+}
+
+/* Scrollbar Styling */
+.slate-editor::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.slate-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slate-editor::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 6px;
+  border: 3px solid #1e1e1e;
+}
+
+.slate-editor::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+.slate-editor::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Sync scrolling for gutter */
+.slate-gutter-wrapper {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

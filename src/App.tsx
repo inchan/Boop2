@@ -1,16 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import CodeMirror, { EditorView } from '@uiw/react-codemirror';
-import { indentUnit } from '@codemirror/language';
-import {
-  keymap,
-  drawSelection,
-  highlightActiveLine,
-  highlightActiveLineGutter,
-} from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { foldGutter, foldKeymap } from '@codemirror/language';
-import { lineNumbers, highlightSpecialChars } from '@codemirror/view';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import debounce from 'lodash/debounce';
+import SlateEditor, { SlateEditorHandle } from './components/SlateEditor';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { CommandPalette } from './components/CommandPalette';
 import { TabBar, Tab } from './components/TabBar';
 import { ClipboardPopover } from './components/ClipboardPopover';
@@ -18,7 +10,6 @@ import { SessionPopover, Session } from './components/SessionPopover';
 import { SettingsPopover, Settings } from './components/SettingsPopover';
 import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
-import { boopTheme } from './lib/BoopTheme';
 import { UpdateNotification } from './components/UpdateNotification';
 import { checkForUpdates, type UpdateInfo } from './lib/updater';
 import './App.css';
@@ -26,11 +17,6 @@ import './App.css';
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
-
-// IME composition 상태 (CodeMirror extension용 모듈 스코프 변수)
-// Note: CodeMirror extensions는 React lifecycle과 독립적으로 동작하며,
-// 이 값은 렌더링에 영향을 주지 않으므로 모듈 레벨 관리가 적합합니다.
-let isComposing = false;
 
 const DEFAULT_SETTINGS: Settings = {
   enableSessionRestore: true,
@@ -57,7 +43,7 @@ function App() {
   const [isSessionsOpen, setIsSessionsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [editorView, setEditorView] = useState<EditorView | null>(null);
+  const slateEditorRef = useRef<SlateEditorHandle>(null);
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -164,19 +150,36 @@ function App() {
     initialize();
   }, []);
 
+  // localStorage 저장에 debounce 적용 (300ms)
+  const debouncedSaveRef = useRef(
+    debounce((tabsToSave: Tab[]) => {
+      try {
+        localStorage.setItem(STORAGE_KEY_CURRENT_TMP, JSON.stringify(tabsToSave));
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          console.error('[Storage] Quota exceeded, unable to save tabs');
+        }
+      }
+    }, 300)
+  );
+
   useEffect(() => {
-    if (isInitialized && tabs.length > 0)
-      localStorage.setItem(STORAGE_KEY_CURRENT_TMP, JSON.stringify(tabs));
+    if (isInitialized && tabs.length > 0) {
+      debouncedSaveRef.current(tabs);
+    }
   }, [tabs, isInitialized]);
+
+  // 컴포넌트 언마운트 시 debounce flush
+  useEffect(() => {
+    return () => {
+      debouncedSaveRef.current.flush();
+    };
+  }, []);
 
   const activeTab = useMemo(
     () => tabs.find((t) => t.id === activeTabId) || tabs[0],
     [tabs, activeTabId]
   );
-
-  // Composition 상태에 따라 value를 제어
-  // Composition 중에는 React state 업데이트를 차단하므로 문제없음
-  const editorValue = activeTab?.content || '';
 
   const handleAddTab = useCallback(() => {
     const newId = generateId();
@@ -239,13 +242,11 @@ function App() {
 
   const handlePasteFromHistory = useCallback(
     (content: string) => {
-      if (!editorView) return;
-      editorView.dispatch({
-        changes: { from: 0, to: editorView.state.doc.length, insert: content },
-      });
+      if (!slateEditorRef.current) return;
+      slateEditorRef.current.setText(content);
       setStatusMessage('Pasted from history');
     },
-    [editorView]
+    []
   );
 
   useEffect(() => {
@@ -283,36 +284,48 @@ function App() {
   const runSelectedScript = useCallback(
     async (script: ScriptModel) => {
       setIsPaletteOpen(false);
-      if (!editorView) return;
-      const state = editorView.state;
-      const sel = state.selection.main;
+      const editor = slateEditorRef.current;
+      if (!editor) return;
+
+      const fullText = editor.getText();
+      const selection = editor.getSelection();
+      const selRange = editor.getSelectionRange();
+      const isSelection = selRange ? !selRange.isEmpty : false;
+
       const context: ExecutionContextData = {
-        fullText: state.doc.toString(),
-        selection: state.sliceDoc(sel.from, sel.to),
-        selectionOffset: sel.from,
-        isSelection: !sel.empty,
+        fullText,
+        selection,
+        selectionOffset: selRange?.from ?? 0,
+        isSelection,
       };
+
       setStatusMessage(`Running ${script.name || 'Script'}...`);
       try {
         const result = await runScriptAsync(script, context, (msg) => console.info(msg));
-        const transaction: { changes?: { from: number; to: number; insert: string } } = {};
-        if (!sel.empty) {
-          if (result.selection !== context.selection)
-            transaction.changes = { from: sel.from, to: sel.to, insert: result.selection };
+
+        if (isSelection) {
+          // 선택 영역 교체
+          if (result.selection !== context.selection) {
+            editor.replaceSelection(result.selection);
+            setStatusMessage(`Success: ${script.name}`);
+          } else {
+            setStatusMessage(`Done: ${script.name}`);
+          }
         } else {
-          if (result.fullText !== context.fullText)
-            transaction.changes = { from: 0, to: state.doc.length, insert: result.fullText };
+          // 전체 문서 교체
+          if (result.fullText !== context.fullText) {
+            editor.setText(result.fullText);
+            setStatusMessage(`Success: ${script.name}`);
+          } else {
+            setStatusMessage(`Done: ${script.name}`);
+          }
         }
-        if (transaction.changes) {
-          editorView.dispatch(transaction);
-          setStatusMessage(`Success: ${script.name}`);
-        } else setStatusMessage(`Done: ${script.name}`);
       } catch (error) {
         setStatusMessage(`Error: ${error}`);
       }
-      editorView.focus();
+      editor.focus();
     },
-    [editorView]
+    []
   );
 
   if (!isInitialized) return null;
@@ -379,88 +392,15 @@ function App() {
         hasSessions={settings.enableSessionRestore && sessions.length > 0}
       />
 
-      <CodeMirror
-        key={activeTabId}
-        value={editorValue}
-        height="100%"
-        theme={boopTheme}
-        extensions={[
-          // 기본 에디터 기능 (basicSetup 없이 수동 추가)
-          lineNumbers(),
-          highlightSpecialChars(),
-          history(),
-          foldGutter(),
-          drawSelection(),
-          highlightActiveLine(),
-          highlightActiveLineGutter(),
-
-          // 에디터 동작
-          EditorView.lineWrapping,
-          indentUnit.of('  '),
-
-          // 키맵 (커스텀 키를 최상단에 배치하여 최우선 순위 확보)
-          keymap.of([
-            // Enter 키를 최상단에 추가 (최우선 순위)
-            {
-              key: 'Enter',
-              run: (view) => {
-                view.dispatch(view.state.replaceSelection('\n'));
-                return true;
-              },
-            },
-            ...historyKeymap,
-            ...foldKeymap,
-            // defaultKeymap에서 들여쓰기 관련 제외
-            ...defaultKeymap.filter(
-              (binding) => binding.key !== 'Enter' && !binding.key?.includes('Tab')
-            ),
-          ]),
-
-          // IME Composition 처리 (Uncontrolled이므로 간소화)
-          // CodeMirror extension은 React lifecycle과 독립적으로 동작하므로
-          // 모듈 레벨 변수 사용이 적합합니다.
-          /* eslint-disable react-hooks/globals */
-          EditorView.domEventHandlers({
-            compositionstart: () => {
-              isComposing = true;
-              return false;
-            },
-            compositionupdate: () => {
-              isComposing = true;
-              return false;
-            },
-            compositionend: (_event, view) => {
-              setTimeout(() => {
-                isComposing = false;
-                // Uncontrolled이므로 composition 완료 시에만 state 업데이트
-                handleTabContentChange(view.state.doc.toString());
-              }, 50);
-              return false;
-            },
-          }),
-
-          // 문서 변경 감지 (composition 중에는 state 업데이트 안 함)
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged && !isComposing) {
-              handleTabContentChange(update.state.doc.toString());
-            }
-          }),
-          /* eslint-enable react-hooks/globals */
-
-          // DOM Attributes
-          EditorView.contentAttributes.of({
-            autocomplete: 'off',
-            autocorrect: 'off',
-            autocapitalize: 'off',
-            spellcheck: 'false',
-          }),
-        ]}
-        onChange={() => {}}
-        onCreateEditor={setEditorView}
-        autoFocus={true}
-        style={{ flex: 1, fontSize: '13px', minHeight: 0, overflow: 'hidden' }}
-        basicSetup={false}
-      />
+      <ErrorBoundary>
+        <SlateEditor
+          ref={slateEditorRef}
+          initialValue={activeTab?.content || ''}
+          onChange={handleTabContentChange}
+          autoFocus={true}
+          placeholder="Type or paste text here..."
+        />
+      </ErrorBoundary>
 
       <div className="status-bar">
         <span>{statusMessage || 'Ready'}</span>

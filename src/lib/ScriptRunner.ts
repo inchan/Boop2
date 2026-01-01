@@ -1,7 +1,5 @@
-import { ExecutionContextData, WorkerResponse } from './WorkerTypes';
-
-// Vite worker import syntax
-import ScriptWorker from './worker?worker';
+import { ExecutionContextData } from './WorkerTypes';
+import { workerPool } from './WorkerPool';
 
 export interface ScriptModel {
   name?: string;
@@ -12,6 +10,7 @@ export interface ScriptModel {
 
 /**
  * Runs a Boop script in a background Web Worker.
+ * Uses WorkerPool for efficient worker reuse.
  *
  * @param script The script model containing source code.
  * @param context The current state of the editor (text, selection).
@@ -23,42 +22,5 @@ export function runScriptAsync(
   context: ExecutionContextData,
   onInfo?: (msg: string) => void
 ): Promise<ExecutionContextData> {
-  return new Promise((resolve, reject) => {
-    const worker = new ScriptWorker();
-
-    // Safety timeout: 5 seconds (prevent infinite loops from hanging backend resources)
-    const timeout = setTimeout(() => {
-      worker.terminate();
-      reject(new Error('Script execution timed out (5s limit).'));
-    }, 5000);
-
-    worker.onmessage = (e) => {
-      const resp = e.data as WorkerResponse;
-
-      if (resp.type === 'SUCCESS') {
-        clearTimeout(timeout);
-        resolve(resp.payload);
-        worker.terminate();
-      } else if (resp.type === 'ERROR') {
-        clearTimeout(timeout);
-        reject(new Error(resp.error));
-        worker.terminate();
-      } else if (resp.type === 'INFO') {
-        if (onInfo) onInfo(resp.message);
-      }
-    };
-
-    worker.onerror = (err) => {
-      clearTimeout(timeout);
-      reject(err);
-      worker.terminate();
-    };
-
-    // Send payload
-    worker.postMessage({
-      type: 'EXECUTE',
-      script: script.full_text,
-      context: context,
-    });
-  });
+  return workerPool.execute(script.full_text, context, onInfo);
 }
