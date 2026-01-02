@@ -29,7 +29,6 @@ export function useSessions() {
       return [];
     }
   });
-  const [isLoaded] = useState(true);
 
   // 임시 세션 복원 및 로드 완료 처리
   useEffect(() => {
@@ -121,7 +120,6 @@ export function useSessions() {
 
   return {
     sessions,
-    isLoaded,
     hasSessions: sessions.length > 0,
     saveSnapshot,
     restoreSession,

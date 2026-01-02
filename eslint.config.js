@@ -4,6 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default [
   // Global ignores
@@ -27,28 +28,7 @@ export default [
         },
       },
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        crypto: 'readonly',
-        localStorage: 'readonly',
-        ClipboardEvent: 'readonly',
-        KeyboardEvent: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLDivElement: 'readonly',
-        DOMException: 'readonly',
-        Worker: 'readonly',
-        ErrorEvent: 'readonly',
-        MessageEvent: 'readonly',
-        self: 'readonly', // Web Worker
-        __dirname: 'readonly', // Node.js
-        btoa: 'readonly', // Base64 encode
-        atob: 'readonly', // Base64 decode
+        ...globals.browser,
       },
     },
     plugins: {

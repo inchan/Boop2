@@ -30,7 +30,6 @@ export function useSettings() {
     }
     return DEFAULT_SETTINGS;
   });
-  const [isLoaded] = useState(true);
 
   const updateSettings = useCallback((newSettings: Settings) => {
     setSettings(newSettings);
@@ -55,7 +54,6 @@ export function useSettings() {
 
   return {
     settings,
-    isLoaded,
     updateSettings,
     updateSetting,
   };
