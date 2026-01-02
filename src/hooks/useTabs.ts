@@ -55,8 +55,9 @@ export function useTabs(options: UseTabsOptions = {}) {
 
   // 컴포넌트 언마운트 시 debounce flush
   useEffect(() => {
+    const debouncedSave = debouncedSaveRef.current;
     return () => {
-      debouncedSaveRef.current.flush();
+      debouncedSave.flush();
     };
   }, []);
 

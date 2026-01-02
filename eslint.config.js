@@ -8,13 +8,7 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
   // Global ignores
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      'src-tauri/target/**',
-      '*.config.js',
-      '*.config.ts',
-    ],
+    ignores: ['dist/**', 'node_modules/**', 'src-tauri/target/**', '*.config.js', '*.config.ts'],
   },
 
   // Base configuration for all files
@@ -46,6 +40,10 @@ export default [
         KeyboardEvent: 'readonly',
         HTMLElement: 'readonly',
         HTMLInputElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        DOMException: 'readonly',
+        Worker: 'readonly',
+        ErrorEvent: 'readonly',
         MessageEvent: 'readonly',
         self: 'readonly', // Web Worker
         __dirname: 'readonly', // Node.js
@@ -55,7 +53,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
-      'react': reactPlugin,
+      react: reactPlugin,
       'react-hooks': reactHooksPlugin,
     },
     rules: {
@@ -69,10 +67,13 @@ export default [
 
       // TypeScript 관련
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
 
       // 코드 품질
       'no-console': 'off', // 개발 중에는 허용

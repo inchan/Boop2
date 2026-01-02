@@ -1,4 +1,4 @@
-import {
+import React, {
   useState,
   useCallback,
   useMemo,
@@ -226,15 +226,17 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
             Transforms.removeNodes(editor, { at: [editor.children.length - 1] });
           }
         });
-        // 상태 업데이트
-        setLineCount(textToSlateValue(initialValue).length);
-        setActiveLine(0);
-        // 커서 초기화
-        try {
-          Transforms.select(editor, Editor.start(editor, []));
-        } catch {
-          // 빈 문서일 경우 무시
-        }
+        // 상태 업데이트 (렌더링 사이클 이후 실행)
+        setTimeout(() => {
+          setLineCount(textToSlateValue(initialValue).length);
+          setActiveLine(0);
+          // 커서 초기화
+          try {
+            Transforms.select(editor, Editor.start(editor, []));
+          } catch {
+            // 빈 문서일 경우 무시
+          }
+        }, 0);
       }
     }, [initialValue, editor]);
 

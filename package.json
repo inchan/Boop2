@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "build:install": "tauri build && cp -rf src-tauri/target/release/bundle/macos/Boop2.app /Applications/ && echo '✅ Installed successfully!'",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest",
@@ -19,7 +19,18 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "prepare": "simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged",
+    "pre-push": "npm run lint"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -59,7 +70,9 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^27.4.0",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^4.0.16"

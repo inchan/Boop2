@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
 
@@ -19,22 +19,18 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // 초기 로드
-  useEffect(() => {
+  const [settings, setSettings] = useState<Settings>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
       }
     } catch (e) {
       console.error('Failed to load settings:', e);
     }
-    setIsLoaded(true);
-  }, []);
+    return DEFAULT_SETTINGS;
+  });
+  const [isLoaded] = useState(true);
 
   const updateSettings = useCallback((newSettings: Settings) => {
     setSettings(newSettings);

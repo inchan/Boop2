@@ -20,18 +20,20 @@ const generateId = () => {
 };
 
 export function useSessions() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>(() => {
+    try {
+      const savedStack = localStorage.getItem(STORAGE_KEY_SESSIONS);
+      return savedStack ? JSON.parse(savedStack) : [];
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      return [];
+    }
+  });
+  const [isLoaded] = useState(true);
 
-  // 초기 로드 및 임시 세션 정리
+  // 임시 세션 복원 및 로드 완료 처리
   useEffect(() => {
     try {
-      let stack: Session[] = [];
-      const savedStack = localStorage.getItem(STORAGE_KEY_SESSIONS);
-      if (savedStack) {
-        stack = JSON.parse(savedStack);
-      }
-
       // 임시 세션 복원
       const tmpSession = localStorage.getItem(STORAGE_KEY_CURRENT_TMP);
       if (tmpSession) {
@@ -41,20 +43,27 @@ export function useSessions() {
           parsedTmp.length > 0 &&
           parsedTmp.some((t: Tab) => t.content.trim() !== '')
         ) {
-          stack = [
-            { id: generateId(), timestamp: Date.now(), tabs: parsedTmp },
-            ...stack,
-          ].slice(0, MAX_SESSIONS);
-          localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(stack));
+          // 비동기 업데이트로 렌더링 루프 방지
+          setTimeout(() => {
+            setSessions((prevStack) => {
+              const newStack = [
+                { id: generateId(), timestamp: Date.now(), tabs: parsedTmp },
+                ...prevStack,
+              ].slice(0, MAX_SESSIONS);
+              try {
+                localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(newStack));
+              } catch (e) {
+                console.error('Failed to save session:', e);
+              }
+              return newStack;
+            });
+          }, 0);
         }
         localStorage.removeItem(STORAGE_KEY_CURRENT_TMP);
       }
-
-      setSessions(stack);
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      console.error('Failed to process temp session:', error);
     }
-    setIsLoaded(true);
   }, []);
 
   const saveSnapshot = useCallback((tabs: Tab[]) => {
@@ -79,34 +88,31 @@ export function useSessions() {
     return snapshot;
   }, []);
 
-  const restoreSession = useCallback(
-    (session: Session, currentTabs: Tab[]): Tab[] => {
-      // 현재 상태를 스냅샷으로 저장
-      if (currentTabs.length > 0 && currentTabs.some((t) => t.content.trim() !== '')) {
-        const currentSnapshot: Session = {
-          id: generateId(),
-          timestamp: Date.now(),
-          tabs: [...currentTabs],
-        };
+  const restoreSession = useCallback((session: Session, currentTabs: Tab[]): Tab[] => {
+    // 현재 상태를 스냅샷으로 저장
+    if (currentTabs.length > 0 && currentTabs.some((t) => t.content.trim() !== '')) {
+      const currentSnapshot: Session = {
+        id: generateId(),
+        timestamp: Date.now(),
+        tabs: [...currentTabs],
+      };
 
-        setSessions((prev) => {
-          const updated = [currentSnapshot, ...prev.filter((s) => s.id !== session.id)].slice(
-            0,
-            MAX_SESSIONS
-          );
-          try {
-            localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated));
-          } catch (e) {
-            console.error('Failed to save session:', e);
-          }
-          return updated;
-        });
-      }
+      setSessions((prev) => {
+        const updated = [currentSnapshot, ...prev.filter((s) => s.id !== session.id)].slice(
+          0,
+          MAX_SESSIONS
+        );
+        try {
+          localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated));
+        } catch (e) {
+          console.error('Failed to save session:', e);
+        }
+        return updated;
+      });
+    }
 
-      return session.tabs;
-    },
-    []
-  );
+    return session.tabs;
+  }, []);
 
   const clearSessions = useCallback(() => {
     setSessions([]);
