@@ -46,7 +46,10 @@ function App() {
   const slateEditorRef = useRef<SlateEditorHandle>(null);
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
+  const [status, setStatus] = useState<{ type: 'info' | 'error' | 'success'; text: string }>({
+    type: 'info',
+    text: '',
+  });
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
@@ -117,7 +120,7 @@ function App() {
           // 새 탭이 없으면 첫 번째 탭으로 포커스
           setActiveTabId(restoredTabs[0].id);
         }
-        setStatusMessage('Last session restored automatically');
+        setStatus({ type: 'info', text: 'Last session restored automatically' });
       } else {
         const defaultId = generateId();
         setTabs([{ id: defaultId, title: 'Untitled', content: '' }]);
@@ -129,10 +132,10 @@ function App() {
         const data = await invoke('load_scripts');
         setScripts(data as ScriptModel[]);
         if (!loadedSettings.autoRestoreLastSession || sessionStack.length === 0) {
-          setStatusMessage(`${(data as ScriptModel[]).length} scripts loaded`);
+          setStatus({ type: 'info', text: `${(data as ScriptModel[]).length} scripts loaded` });
         }
       } catch {
-        setStatusMessage('Error loading scripts');
+        setStatus({ type: 'error', text: 'Error loading scripts' });
       }
 
       // Check for updates if enabled
@@ -221,7 +224,7 @@ function App() {
       setSessions((prev) =>
         [currentSnapshot, ...prev.filter((s) => s.id !== session.id)].slice(0, 50)
       );
-      setStatusMessage('Session restored');
+      setStatus({ type: 'info', text: 'Session restored' });
     },
     [tabs]
   );
@@ -240,14 +243,11 @@ function App() {
     [settings.enableClipboardHistory]
   );
 
-  const handlePasteFromHistory = useCallback(
-    (content: string) => {
-      if (!slateEditorRef.current) return;
-      slateEditorRef.current.setText(content);
-      setStatusMessage('Pasted from history');
-    },
-    []
-  );
+  const handlePasteFromHistory = useCallback((content: string) => {
+    if (!slateEditorRef.current) return;
+    slateEditorRef.current.setText(content);
+    setStatus({ type: 'info', text: 'Pasted from history' });
+  }, []);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -281,52 +281,48 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTabId, handleAddTab, handleCloseTab, tabs]);
 
-  const runSelectedScript = useCallback(
-    async (script: ScriptModel) => {
-      setIsPaletteOpen(false);
-      const editor = slateEditorRef.current;
-      if (!editor) return;
+  const runSelectedScript = useCallback(async (script: ScriptModel) => {
+    setIsPaletteOpen(false);
+    const editor = slateEditorRef.current;
+    if (!editor) return;
 
-      const fullText = editor.getText();
-      const selection = editor.getSelection();
-      const selRange = editor.getSelectionRange();
-      const isSelection = selRange ? !selRange.isEmpty : false;
+    const fullText = editor.getText();
+    const selection = editor.getSelection();
+    const selRange = editor.getSelectionRange();
+    const isSelection = selRange ? !selRange.isEmpty : false;
 
-      const context: ExecutionContextData = {
-        fullText,
-        selection,
-        selectionOffset: selRange?.from ?? 0,
-        isSelection,
-      };
+    const context: ExecutionContextData = {
+      fullText,
+      selection,
+      selectionOffset: selRange?.from ?? 0,
+      isSelection,
+    };
 
-      setStatusMessage(`Running ${script.name || 'Script'}...`);
-      try {
-        const result = await runScriptAsync(script, context, (msg) => console.info(msg));
+    setStatus({ type: 'info', text: `Running ${script.name || 'Script'}...` });
+    try {
+      const result = await runScriptAsync(script, context, (msg) => console.info(msg));
 
-        if (isSelection) {
-          // 선택 영역 교체
-          if (result.selection !== context.selection) {
-            editor.replaceSelection(result.selection);
-            setStatusMessage(`Success: ${script.name}`);
-          } else {
-            setStatusMessage(`Done: ${script.name}`);
-          }
+      if (isSelection) {
+        // 선택 영역 교체
+        if (result.selection !== context.selection) {
+          editor.replaceSelection(result.selection);
+          setStatus({ type: 'success', text: `Success: ${script.name}` });
         } else {
-          // 전체 문서 교체
-          if (result.fullText !== context.fullText) {
-            editor.setText(result.fullText);
-            setStatusMessage(`Success: ${script.name}`);
-          } else {
-            setStatusMessage(`Done: ${script.name}`);
-          }
+          setStatus({ type: 'info', text: `Done: ${script.name}` });
         }
-      } catch (error) {
-        setStatusMessage(`Error: ${error}`);
+      } else {
+        if (result.fullText !== context.fullText) {
+          editor.setText(result.fullText, { saveHistory: true });
+          setStatus({ type: 'success', text: `Success: ${script.name}` });
+        } else {
+          setStatus({ type: 'info', text: `Done: ${script.name}` });
+        }
       }
-      editor.focus();
-    },
-    []
-  );
+    } catch (error) {
+      setStatus({ type: 'error', text: `Error: ${error}` });
+    }
+    editor.focus();
+  }, []);
 
   if (!isInitialized) return null;
 
@@ -402,8 +398,8 @@ function App() {
         />
       </ErrorBoundary>
 
-      <div className="status-bar">
-        <span>{statusMessage || 'Ready'}</span>
+      <div className={`status-bar status-${status.type}`}>
+        <span className="status-text">{status.text || 'Ready'}</span>
         <span>
           {tabs.length} tabs • {scripts.length} scripts
         </span>

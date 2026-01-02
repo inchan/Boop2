@@ -8,12 +8,12 @@ We aim to maintain compatibility with original Boop scripts.
 | Module | Usage | Description |
 | :--- | :--- | :--- |
 | **Lodash** | `require('lodash')` | The full build of Lodash. |
-| **Base64** | `require('@boop/base64')` | `encode(str)` and `decode(str)`. |
-| **HTML Entities** | `require('@boop/he')` | HTML encoder/decoder. |
-| **Hashes** | `require('@boop/hashes')` | MD5, SHA1, SHA256, SHA512 generation. |
-| **CSV** | `require('@boop/papaparse.js')` | CSV parsing via PapaParse. |
-| **YAML** | `require('@boop/js-yaml')` | YAML parsing/dumping via js-yaml. |
-| **Beautify** | `require('@boop/vkBeautify')` | XML, SQL, CSS beautifier/minifier. |
+| **Base64** | `require('@boop/base64')` | `encode(str)` and `decode(str)` (Unicode supported). |
+| **HTML Entities** | `require('@boop/he')` | HTML encoder/decoder via `he`. |
+| **Hashes** | `require('@boop/hashes')` | MD5, SHA1, SHA256, SHA512 via `jshashes`. |
+| **CSV** | `require('@boop/papaparse.js')` | CSV parsing/generation via `PapaParse`. |
+| **YAML** | `require('@boop/js-yaml')` | YAML parsing/dumping via `js-yaml`. |
+| **Beautify** | `require('@boop/vkBeautify')` | XML, SQL, CSS, JSON beautifier/minifier. |
 
 ## Compatibility Aliases
 For backward compatibility with older scripts, the following paths are also supported:

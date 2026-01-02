@@ -7,10 +7,24 @@ import {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { createEditor, Descendant, Editor, Transforms, Range, Text, Element as SlateElement, BaseEditor, Operation } from 'slate';
+import {
+  createEditor,
+  Descendant,
+  Editor,
+  Transforms,
+  Range,
+  Text,
+  Element as SlateElement,
+  BaseEditor,
+  Operation,
+  Node,
+} from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
 import './SlateEditor.css';
+
+// 들여쓰기 상수 (4 spaces)
+const INDENT = '    ';
 
 // Slate.js에서 사용하는 커스텀 타입 정의
 type ParagraphElement = {
@@ -35,8 +49,8 @@ declare module 'slate' {
 export interface SlateEditorHandle {
   // 전체 텍스트 가져오기
   getText: () => string;
-  // 전체 텍스트 설정
-  setText: (text: string) => void;
+  // 전체 텍스트 설정 (saveHistory: true면 Undo 가능)
+  setText: (text: string, options?: { saveHistory?: boolean }) => void;
   // 선택된 텍스트 가져오기
   getSelection: () => string;
   // 선택 범위 정보
@@ -115,10 +129,8 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
       () => ({
         getText: () => slateValueToText(editor.children),
 
-        setText: (text: string) => {
-          // 히스토리에 기록하지 않음 (탭 전환 시 Undo 방지)
-          HistoryEditor.withoutSaving(editor, () => {
-            // 전체 내용 삭제 후 새 내용 삽입
+        setText: (text: string, options?: { saveHistory?: boolean }) => {
+          const doTransform = () => {
             Transforms.delete(editor, {
               at: {
                 anchor: Editor.start(editor, []),
@@ -127,14 +139,18 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
             });
             const nodes = textToSlateValue(text);
             Transforms.insertNodes(editor, nodes, { at: [0] });
-            // 첫 번째 빈 노드 제거 (insertNodes가 남기는 경우)
             if (editor.children.length > nodes.length) {
               Transforms.removeNodes(editor, { at: [editor.children.length - 1] });
             }
-          });
-          // 커서를 문서 시작으로 초기화
+          };
+
+          if (options?.saveHistory) {
+            doTransform();
+          } else {
+            HistoryEditor.withoutSaving(editor, doTransform);
+          }
+
           Transforms.select(editor, Editor.start(editor, []));
-          // 라인 수 업데이트
           setLineCount(textToSlateValue(text).length);
           setActiveLine(0);
         },
@@ -256,7 +272,9 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
         if (isComposingRef.current) return;
 
         // 실제 콘텐츠 변경인지 확인 (selection만 변경된 경우 제외)
-        const isContentChange = editor.operations.some((op: Operation) => op.type !== 'set_selection');
+        const isContentChange = editor.operations.some(
+          (op: Operation) => op.type !== 'set_selection'
+        );
 
         if (isContentChange && onChange) {
           const text = slateValueToText(value);
@@ -283,6 +301,22 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
       }, 50);
     }, [editor, onChange]);
 
+    // 복사 이벤트 핸들러 - 빈 줄 포함하여 plain text 직렬화
+    const handleCopy = useCallback(
+      (event: React.ClipboardEvent<HTMLDivElement>) => {
+        const { selection } = editor;
+        if (!selection || Range.isCollapsed(selection)) return;
+
+        const fragment = Editor.fragment(editor, selection);
+        const text = fragment.map((node) => Node.string(node)).join('\n');
+
+        event.clipboardData.setData('text/plain', text);
+        // 기본 Slate 동작 유지하지 않음 (preventDefault 호출)
+        event.preventDefault();
+      },
+      [editor]
+    );
+
     // 키보드 이벤트 핸들러
     const handleKeyDown = useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -291,6 +325,57 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
           event.preventDefault();
           // Slate 기본 방식: 현재 노드 분리하여 새 paragraph 생성
           Editor.insertBreak(editor);
+          return;
+        }
+
+        // Tab 키: 들여쓰기 / Shift+Tab: 내어쓰기
+        if (event.key === 'Tab') {
+          event.preventDefault();
+
+          const { selection } = editor;
+          if (!selection) return;
+
+          if (event.shiftKey) {
+            // Shift+Tab: 내어쓰기
+            const [start, end] = Range.edges(selection);
+            const startLine = start.path[0];
+            const endLine = Range.isCollapsed(selection) ? startLine : end.path[0];
+
+            // 역순으로 처리하여 offset 변경 문제 방지
+            for (let i = endLine; i >= startLine; i--) {
+              const node = editor.children[i];
+              const text = Node.string(node);
+              const match = text.match(/^( {1,4})/);
+
+              if (match) {
+                const spacesToRemove = match[1].length;
+                const lineStart = Editor.start(editor, [i]);
+                Transforms.delete(editor, {
+                  at: {
+                    anchor: lineStart,
+                    focus: { ...lineStart, offset: spacesToRemove },
+                  },
+                });
+              }
+            }
+          } else {
+            // Tab: 들여쓰기
+            if (Range.isCollapsed(selection)) {
+              // 단일 커서: 현재 위치에 4 공백 삽입
+              Transforms.insertText(editor, INDENT);
+            } else {
+              // 여러 줄 선택: 각 줄 시작에 4 공백 삽입
+              const [start, end] = Range.edges(selection);
+              const startLine = start.path[0];
+              const endLine = end.path[0];
+
+              // 역순으로 처리하여 offset 변경 문제 방지
+              for (let i = endLine; i >= startLine; i--) {
+                const lineStart = Editor.start(editor, [i]);
+                Transforms.insertText(editor, INDENT, { at: lineStart });
+              }
+            }
+          }
           return;
         }
       },
@@ -313,10 +398,7 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
         const isActive = path[0] === activeLine;
 
         return (
-          <div
-            {...attributes}
-            className={`slate-paragraph ${isActive ? 'active-line' : ''}`}
-          >
+          <div {...attributes} className={`slate-paragraph ${isActive ? 'active-line' : ''}`}>
             {children}
           </div>
         );
@@ -327,10 +409,7 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
     // 라인 번호 렌더링
     const lineNumbers = useMemo(() => {
       return Array.from({ length: lineCount }, (_, i) => (
-        <div
-          key={i}
-          className={`slate-line-number ${i === activeLine ? 'active' : ''}`}
-        >
+        <div key={i} className={`slate-line-number ${i === activeLine ? 'active' : ''}`}>
           {i + 1}
         </div>
       ));
@@ -356,6 +435,7 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
             onCompositionEnd={handleCompositionEnd}
             onKeyDown={handleKeyDown}
             onSelect={handleSelect}
+            onCopy={handleCopy}
             renderElement={renderElement}
           />
         </Slate>

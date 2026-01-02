@@ -7,7 +7,7 @@ This document outlines the technical structure of Boop2 and how to contribute.
 Boop2 follows a decoupled architecture between the UI, the Script Engine, and the Backend.
 
 ### 1. Frontend (React + TypeScript)
-- **Editor:** Uses **CodeMirror 6**. Features include line wrapping and custom Boop theme.
+- **Editor:** Uses **Slate**. Features include line wrapping and custom Boop theme.
 - **State:** Managed via React hooks. Content is synchronized with current tabs.
 - **Execution:** Scripts run in a **Web Worker** to prevent UI freezing.
 
@@ -75,6 +75,18 @@ npm run test
 - `src/lib/ScriptExecution.test.ts`: Tests the API provided to scripts.
 - `src/lib/Integration.test.ts`: Verifies individual script logic.
 - `src/lib/BulkScript.test.ts`: Audits all 72 built-in scripts for runtime and strict-mode compatibility.
+
+### 🎭 End-to-End (E2E) Testing
+We use **Playwright** for high-level user interaction and IME compatibility verification.
+```bash
+# Run all E2E tests
+npm run test:e2e
+```
+- `e2e/editor-basic.spec.ts`: Core input and selection logic.
+- `e2e/editor-korean-ime.spec.ts`: Verification of Korean character composition.
+- `e2e/editor-linebreak.spec.ts`: Line break handling and multiline behavior.
+- `e2e/editor-tabs.spec.ts`: Multi-tab synchronization and management.
+
 
 ## ⚙️ CI/CD Pipeline
 Boop2 utilizes GitHub Actions for automated quality assurance and distribution.

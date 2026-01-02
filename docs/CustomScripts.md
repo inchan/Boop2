@@ -2,14 +2,17 @@
 
 You can extend Boop's functionality by writing your own JavaScript scripts.
 
-## Script Location
-To add custom scripts, place your `.js` files in the following directory:
+### Script Locations
+Boop2 scans multiple directories for scripts:
 
-*   **macOS:** `~/Library/Application Support/com.chans.boop2/scripts/`
-*   **Linux:** `~/.config/com.chans.boop2/scripts/`
-*   **Windows:** `%APPDATA%\com.chans.boop2\scripts\`
+1. **User Custom Scripts:**
+   - **macOS:** `~/Library/Application Support/com.chans.boop2/scripts/`
+   - **Linux:** `~/.config/com.chans.boop2/scripts/`
+   - **Windows:** `%APPDATA%\com.chans.boop2\scripts\`
+2. **Internal Bundled Scripts:** Bundled with the application package.
+3. **Development Paths:** (During development) `scripts/` and `src-tauri/scripts/` in the project root.
 
-*(Note: You may need to create the `scripts` folder if it doesn't exist)*
+*(Note: You may need to create the `scripts` folder in your User directory if it doesn't exist)*
 
 ## File Format
 Each script must start with a metadata block in comments, followed by a `main` function.
