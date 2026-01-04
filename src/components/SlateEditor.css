@@ -60,7 +60,7 @@
 }
 
 /* Editable Content */
-.slate-editor [data-slate-editor="true"] {
+.slate-editor [data-slate-editor='true'] {
   min-height: 100%;
   outline: none;
 }

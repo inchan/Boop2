@@ -9,7 +9,9 @@ export function useClipboardHistory(enabled: boolean) {
     (text: string) => {
       if (!enabled) return;
       if (!text || text.trim() === '') return;
-      setHistory((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, MAX_HISTORY_SIZE));
+      setHistory((prev) =>
+        [text, ...prev.filter((item) => item !== text)].slice(0, MAX_HISTORY_SIZE)
+      );
     },
     [enabled]
   );

@@ -9,10 +9,9 @@
     </radialGradient>
   </defs>
 
+  <rect width="512" height="512" fill="url(#bg-grad)" />
+
   <g clip-path="url(#squircle)">
-    <!-- Background -->
-    <rect width="512" height="512" fill="url(#bg-grad)" />
-    
     <!-- Grid Lines -->
     <path d="M0,0 L512,512 M512,0 L0,512" stroke="#222" stroke-width="8" />
     <path d="M0,256 L512,256 M256,0 L256,512" stroke="#222" stroke-width="8" />

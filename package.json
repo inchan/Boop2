@@ -1,7 +1,7 @@
 {
   "name": "boop2",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "icons:generate": "tauri icon src-tauri/icons/icon.png",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {
@@ -29,6 +30,9 @@
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.css": [
       "prettier --write"
     ]
   },
