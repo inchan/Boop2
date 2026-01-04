@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 interface MockScript {
   path: string;
@@ -19,6 +19,7 @@ interface DisplayItem {
   scriptPath?: string;
   path?: string;
   name?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -179,7 +180,7 @@ describe('Favorites UI Integration', () => {
       const recentScripts: MockScript[] = [
         { path: 'scripts/LowerCase.js', name: 'Lower Case', description: '', tags: '' },
       ];
-      const query = '';
+      const _query = '';
 
       const favs = favorites.filter((f) => mockScripts.some((s) => s.path === f.scriptPath));
       const allScripts = [...favs, ...recentScripts, ...mockScripts];
@@ -189,7 +190,7 @@ describe('Favorites UI Integration', () => {
     });
 
     it('should show only search results when query is present', () => {
-      const favorites: MockFavorite[] = [
+      const _favorites: MockFavorite[] = [
         {
           scriptPath: 'scripts/UpperCase.js',
           assignedNumber: 1,
@@ -198,7 +199,7 @@ describe('Favorites UI Integration', () => {
           usageCount: 0,
         },
       ];
-      const recentScripts: MockScript[] = [
+      const _recentScripts: MockScript[] = [
         { path: 'scripts/LowerCase.js', name: 'Lower Case', description: '', tags: '' },
       ];
       const query = 'lower';

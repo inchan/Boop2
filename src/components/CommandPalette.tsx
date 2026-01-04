@@ -33,6 +33,7 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
     const stored = localStorage.getItem(RECENT_SCRIPTS_KEY);
     if (stored) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRecentPaths(JSON.parse(stored));
       } catch (error) {
         console.error('Failed to parse recents', error);
@@ -72,12 +73,14 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
   }, [query, favorites, recentScripts, sortedScripts, filteredResults]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(0);
   }, [displayList]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery('');
     }
   }, [isOpen]);
