@@ -1,39 +1,28 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <clipPath id="squircle">
-      <path d="M256,512c-141.385,0-256-0-256-256C0,0,114.615,0,256,0s256,0,256,256C512,512,397.385,512,256,512z" />
-    </clipPath>
     <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#151515" />
-      <stop offset="100%" stop-color="#050505" />
+      <stop offset="0%" stop-color="#0a0a0a" />
+      <stop offset="100%" stop-color="#000000" />
     </radialGradient>
   </defs>
 
+  <!-- Black Background -->
   <rect width="512" height="512" fill="url(#bg-grad)" />
 
-  <g clip-path="url(#squircle)">
-    <!-- Grid Lines -->
-    <path d="M0,0 L512,512 M512,0 L0,512" stroke="#222" stroke-width="8" />
-    <path d="M0,256 L512,256 M256,0 L256,512" stroke="#222" stroke-width="8" />
+  <!-- Neon Glow Layers for 'B' letter -->
+  <!-- Outer Glow (Wide, Low Opacity) -->
+  <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
+        stroke="#FF0099" stroke-width="40" fill="none" opacity="0.15" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Middle Glow -->
+  <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
+        stroke="#FF0099" stroke-width="24" fill="none" opacity="0.4" stroke-linecap="round" stroke-linejoin="round" />
 
-    <!-- Neon Glow Layers (Simulating Blur with multiple strokes) -->
-    <!-- Outer Glow (Wide, Low Opacity) -->
-    <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
-          stroke="#FF0099" stroke-width="40" fill="none" opacity="0.1" stroke-linecap="round" stroke-linejoin="round" />
-    
-    <!-- Middle Glow -->
-    <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
-          stroke="#FF0099" stroke-width="24" fill="none" opacity="0.3" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Inner Color -->
+  <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
+        stroke="#FF0099" stroke-width="12" fill="none" opacity="0.8" stroke-linecap="round" stroke-linejoin="round" />
 
-    <!-- Inner Color -->
-    <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
-          stroke="#FF0099" stroke-width="12" fill="none" opacity="0.8" stroke-linecap="round" stroke-linejoin="round" />
-
-    <!-- Core White (Bright Center) -->
-    <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
-          stroke="#FFFFFF" stroke-width="4" fill="none" opacity="0.9" stroke-linecap="round" stroke-linejoin="round" />
-
-    <!-- Bottom Decoration -->
-    <rect x="180" y="440" width="152" height="12" rx="4" fill="#333" />
-  </g>
+  <!-- Core White (Bright Center) -->
+  <path d="M160,100 L160,412 M160,100 H280 C360,100 360,256 280,256 H160 M160,256 H280 C360,256 360,412 280,412 H160" 
+        stroke="#FFFFFF" stroke-width="4" fill="none" opacity="0.9" stroke-linecap="round" stroke-linejoin="round" />
 </svg>
