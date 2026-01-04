@@ -8,6 +8,7 @@ export interface Settings {
   openNewTabOnRestore: boolean;
   enableClipboardHistory: boolean;
   enableAutoUpdate: boolean;
+  opacity: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   openNewTabOnRestore: false,
   enableClipboardHistory: true,
   enableAutoUpdate: true,
+  opacity: 100,
 };
 
 export function useSettings() {

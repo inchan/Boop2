@@ -1,7 +1,7 @@
 /* ============================================
-   Slate.js Editor Theme - Boop Style
-   Based on BoopTheme.ts color scheme
-   ============================================ */
+    Slate.js Editor Theme - Boop Style
+    Based on BoopTheme.ts color scheme
+    ============================================ */
 
 /* Editor Container */
 .slate-editor-container {
@@ -9,7 +9,7 @@
   flex-direction: row;
   height: 100%;
   width: 100%;
-  background-color: #1e1e1e;
+  background-color: var(--editor-bg, var(--bg-primary));
   font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
@@ -20,8 +20,8 @@
 .slate-gutter {
   display: flex;
   flex-direction: column;
-  background-color: #1e1e1e;
-  color: #858585;
+  background-color: var(--editor-bg, var(--bg-primary));
+  color: var(--text-secondary);
   text-align: right;
   padding: 10px 0;
   user-select: none;
@@ -38,16 +38,16 @@
 }
 
 .slate-line-number.active {
-  color: #c6c6c6;
+  color: var(--text-primary);
 }
 
 /* Main Editor Area */
 .slate-editor {
   flex: 1;
   padding: 10px 16px;
-  background-color: #1e1e1e;
-  color: #ffffff;
-  caret-color: #ffffff;
+  background-color: var(--editor-bg, var(--bg-primary));
+  color: var(--text-primary);
+  caret-color: var(--text-primary);
   outline: none;
   overflow: auto;
   white-space: pre-wrap;
@@ -75,7 +75,7 @@
 
 /* Active Line Highlight */
 .slate-paragraph.active-line {
-  background-color: #ffffff0b;
+  background-color: var(--bg-tertiary);
 }
 
 /* Selection Styling */
@@ -89,7 +89,7 @@
 
 /* Placeholder Text */
 .slate-placeholder {
-  color: #5a5a5a;
+  color: var(--text-secondary);
   font-style: italic;
   pointer-events: none;
   position: absolute;
@@ -104,13 +104,13 @@
 }
 
 .slate-editor::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track, transparent);
 }
 
 .slate-editor::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--scrollbar-thumb);
   border-radius: 6px;
-  border: 3px solid #1e1e1e;
+  border: 3px solid var(--editor-bg, var(--bg-primary));
 }
 
 .slate-editor::-webkit-scrollbar-thumb:hover {

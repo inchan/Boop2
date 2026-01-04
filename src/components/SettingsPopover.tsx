@@ -6,6 +6,7 @@ export interface Settings {
   openNewTabOnRestore: boolean;
   enableClipboardHistory: boolean;
   enableAutoUpdate: boolean;
+  opacity: number;
 }
 
 interface Props {
@@ -97,6 +98,18 @@ export function SettingsPopover({ settings, onUpdate, onClose }: Props) {
               />
               <span>자동 업데이트 확인</span>
             </label>
+          </div>
+
+          <div className="settings-section">
+            <h4>모양</h4>
+
+            <div className="settings-item slider-item disabled">
+              <span>배경 투명도</span>
+              <div className="slider-container">
+                <input type="range" min="10" max="100" step="5" value={settings.opacity} disabled />
+                <span className="slider-value">{settings.opacity}%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -12,19 +12,13 @@ import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
 import { UpdateNotification } from './components/UpdateNotification';
 import { checkForUpdates, type UpdateInfo } from './lib/updater';
+import { useFavorites } from './hooks';
+import { DEFAULT_SETTINGS } from './hooks/useSettings';
 import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
-
-const DEFAULT_SETTINGS: Settings = {
-  enableSessionRestore: true,
-  autoRestoreLastSession: false,
-  openNewTabOnRestore: false,
-  enableClipboardHistory: true,
-  enableAutoUpdate: true,
-};
 
 const generateId = () => {
   try {
@@ -52,6 +46,7 @@ function App() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const { executeFavorite, onScriptsLoaded } = useFavorites();
 
   useEffect(() => {
     const initialize = async () => {
@@ -130,9 +125,12 @@ function App() {
       setIsInitialized(true);
       try {
         const data = await invoke('load_scripts');
-        setScripts(data as ScriptModel[]);
+        const loadedScripts = data as ScriptModel[];
+        setScripts(loadedScripts);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        onScriptsLoaded(loadedScripts);
         if (!loadedSettings.autoRestoreLastSession || sessionStack.length === 0) {
-          setStatus({ type: 'info', text: `${(data as ScriptModel[]).length} scripts loaded` });
+          setStatus({ type: 'info', text: `${loadedScripts.length} scripts loaded` });
         }
       } catch {
         setStatus({ type: 'error', text: 'Error loading scripts' });
@@ -277,10 +275,21 @@ function App() {
         const index = parseInt(e.key) - 1;
         if (tabs[index]) setActiveTabId(tabs[index].id);
       }
+      if ((e.metaKey || e.ctrlKey) && /^[1-5]$/.test(e.key)) {
+        const number = parseInt(e.key);
+        const scriptPath = executeFavorite(number);
+        if (scriptPath) {
+          const script = scripts.find((s) => s.path === scriptPath);
+          if (script) {
+            e.preventDefault();
+            runSelectedScript(script);
+          }
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTabId, handleAddTab, handleCloseTab, tabs]);
+  }, [activeTabId, handleAddTab, handleCloseTab, tabs, scripts, executeFavorite]);
 
   const runSelectedScript = useCallback(async (script: ScriptModel) => {
     setIsPaletteOpen(false);
@@ -304,7 +313,6 @@ function App() {
       const result = await runScriptAsync(script, context, (msg) => console.info(msg));
 
       if (isSelection) {
-        // 선택 영역 교체
         if (result.selection !== context.selection) {
           editor.replaceSelection(result.selection);
           setStatus({ type: 'success', text: `Success: ${script.name}` });
@@ -328,7 +336,14 @@ function App() {
   if (!isInitialized) return null;
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        opacity: settings.opacity / 100,
+      }}
+    >
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}

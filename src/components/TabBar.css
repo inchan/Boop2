@@ -2,9 +2,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #181818;
+  background: var(--bg-secondary);
   height: 32px;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--border-color);
   user-select: none;
 }
 
@@ -26,10 +26,10 @@
   align-items: center;
   height: 28px;
   padding: 0 12px;
-  background: #181818;
-  color: #858585;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 11px;
-  border-right: 1px solid #2d2d2d;
+  border-right: 1px solid var(--border-color);
   cursor: default;
   max-width: 150px;
   min-width: 80px;
@@ -40,13 +40,13 @@
 }
 
 .tab-item:hover {
-  background: #252525;
-  color: #cccccc;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .tab-item.active {
-  background: #1e1e1e;
-  color: #ffffff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   height: 32px;
   border-bottom: none;
 }
@@ -63,7 +63,7 @@
   flex: 1;
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 11px;
   font-family: inherit;
   outline: none;
@@ -94,7 +94,7 @@
 
 .tab-close:hover {
   opacity: 1 !important;
-  background: #3a3a3a;
+  background: var(--bg-tertiary);
 }
 
 .add-tab-btn {
@@ -104,14 +104,14 @@
   width: 32px;
   min-width: 32px;
   height: 32px;
-  color: #858585;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 18px;
   transition: color 0.2s;
 }
 
 .add-tab-btn:hover {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .tab-bar-actions {
@@ -119,8 +119,8 @@
   align-items: center;
   padding: 0 8px;
   height: 100%;
-  background: #181818;
-  border-left: 1px solid #2d2d2d;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
   z-index: 10;
 }
 
@@ -130,7 +130,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #858585;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 4px;
   transition:
@@ -139,6 +139,6 @@
 }
 
 .action-btn:hover {
-  background: #2d2d2d;
-  color: #ffffff;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }

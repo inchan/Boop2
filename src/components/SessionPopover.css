@@ -13,8 +13,8 @@
   right: 45px; /* Offset to be next to clipboard icon */
   width: 280px;
   max-height: 400px;
-  background: #252525;
-  border: 1px solid #454545;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
@@ -25,14 +25,14 @@
 
 .popover-header {
   padding: 10px 15px;
-  background: #1e1e1e;
-  border-bottom: 1px solid #333;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 10px;
   font-weight: bold;
-  color: #6a6a6a;
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
 
@@ -51,19 +51,19 @@
 .empty-message {
   padding: 20px;
   text-align: center;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .session-item {
   padding: 12px 15px;
   cursor: pointer;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--border-color);
   transition: background 0.2s;
 }
 
 .session-item:hover {
-  background: #2d2d2d;
+  background: var(--bg-tertiary);
 }
 
 .session-main {
@@ -75,18 +75,18 @@
 
 .session-time {
   font-size: 12px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .session-info {
   font-size: 10px;
-  color: #6a6a6a;
+  color: var(--text-secondary);
 }
 
 .session-preview {
   font-size: 10px;
-  color: #555;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

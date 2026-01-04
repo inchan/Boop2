@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Fuse from 'fuse.js';
 import { ScriptModel } from '../lib/ScriptRunner';
+import { useFavorites } from '../hooks';
+import type { FavoriteScript } from '../types';
 import './CommandPalette.css';
 
 interface Props {
@@ -16,14 +18,21 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
+  const [hoveredFavorite, setHoveredFavorite] = useState<FavoriteScript | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const {
+    favorites,
+    isFavorite,
+    addToFavorites,
+    removeFromFavorites,
+    reassignFavoriteNumber,
+    getFavoriteByNumber,
+  } = useFavorites();
 
-  // Load recents
   useEffect(() => {
     const stored = localStorage.getItem(RECENT_SCRIPTS_KEY);
     if (stored) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- 의존성 체인 독립적 (isOpen -> recentPaths)
         setRecentPaths(JSON.parse(stored));
       } catch (error) {
         console.error('Failed to parse recents', error);
@@ -56,20 +65,19 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
     return fuse.search(query).map((res) => res.item);
   }, [query, sortedScripts, fuse]);
 
-  const finalDisplayList = useMemo(() => {
+  const displayList = useMemo(() => {
     if (query) return filteredResults;
-    return [...recentScripts, ...sortedScripts];
-  }, [query, recentScripts, sortedScripts, filteredResults]);
+    const favs = favorites.filter((f) => sortedScripts.some((s) => s.path === f.scriptPath));
+    return [...favs, ...recentScripts, ...sortedScripts];
+  }, [query, favorites, recentScripts, sortedScripts, filteredResults]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 리스트 변경 시 선택 인덱스 리셋 (의존성 순환 없음)
     setSelectedIndex(0);
-  }, [finalDisplayList]);
+  }, [displayList]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 팔레트 열릴 때 query 초기화 (의존성 순환 없음)
       setQuery('');
     }
   }, [isOpen]);
@@ -89,25 +97,49 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
     localStorage.setItem(RECENT_SCRIPTS_KEY, JSON.stringify(newRecents));
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent, script: ScriptModel) => {
+    e.stopPropagation();
+    if (isFavorite(script.path)) {
+      removeFromFavorites(script.path);
+    } else {
+      addToFavorites(script.path);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((i) => Math.min(i + 1, finalDisplayList.length - 1));
+      setSelectedIndex((i) => Math.min(i + 1, displayList.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (finalDisplayList[selectedIndex]) {
-        handleSelect(finalDisplayList[selectedIndex]);
+      if (displayList[selectedIndex]) {
+        const item = displayList[selectedIndex];
+        const scriptPath = 'scriptPath' in item ? item.scriptPath : item.path;
+        const script = sortedScripts.find((s) => s.path === scriptPath);
+        if (script) handleSelect(script);
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
+    } else if (/^[1-5]$/.test(e.key)) {
+      // Hover된 favorite이 있으면 번호 재할당
+      if (hoveredFavorite) {
+        e.preventDefault();
+        const number = parseInt(e.key);
+        reassignFavoriteNumber(hoveredFavorite.scriptPath, number);
+      }
     }
   };
 
   if (!isOpen) return null;
+
+  const hasFavorites = favorites.length > 0 && !query;
+  const favoritesInList = favorites.filter((f) =>
+    sortedScripts.some((s) => s.path === f.scriptPath)
+  );
 
   return (
     <div className="command-palette-overlay" onMouseDown={onClose}>
@@ -121,38 +153,112 @@ export function CommandPalette({ isOpen, onClose, scripts, onSelect }: Props) {
           onKeyDown={handleKeyDown}
         />
         <ul className="command-list">
-          {finalDisplayList.map((script, index) => {
-            const isRecent = !query && index < recentScripts.length;
-            const isFirstAll = !query && index === recentScripts.length;
-
-            return (
-              <React.Fragment key={script.path + index}>
-                {isRecent && index === 0 && <div className="list-section-header">RECENT</div>}
-                {isFirstAll && <div className="list-section-header">ALL SCRIPTS</div>}
-                <li
-                  className={`command-item ${index === selectedIndex ? 'active' : ''}`}
-                  onClick={() => handleSelect(script)}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                >
-                  <div
-                    style={{ display: 'flex', alignItems: 'baseline', flex: 1, overflow: 'hidden' }}
+          {hasFavorites && favoritesInList.length > 0 && (
+            <>
+              <div className="list-section-header">
+                <span className="star-icon">★</span> FAVORITES
+              </div>
+              {favoritesInList.map((fav, index) => {
+                const script = sortedScripts.find((s) => s.path === fav.scriptPath);
+                if (!script) return null;
+                return (
+                  <li
+                    key={`fav-${script.path}`}
+                    className={`command-item favorite-item ${index === selectedIndex ? 'active' : ''}`}
+                    onClick={() => handleSelect(script)}
+                    onMouseEnter={() => {
+                      setSelectedIndex(index);
+                      setHoveredFavorite(fav);
+                    }}
+                    onMouseLeave={() => setHoveredFavorite(null)}
                   >
-                    <span style={{ fontWeight: 600 }}>{script.name || 'Untitled'}</span>
-                    <span className="command-desc">{script.description}</span>
-                  </div>
+                    <span className="command-name">{script.name || 'Untitled'}</span>
+                    <span className="shortcut-badge">Cmd+{fav.assignedNumber}</span>
+                    <button
+                      className={`favorite-star active`}
+                      onClick={(e) => handleToggleFavorite(e, script)}
+                      title="Remove from favorites"
+                    >
+                      ★
+                    </button>
+                    <div className="shortcut-tooltip">Press Cmd+{fav.assignedNumber}</div>
+                    {hoveredFavorite?.scriptPath === fav.scriptPath && (
+                      <div className="number-picker">
+                        {[1, 2, 3, 4, 5].map((num) => {
+                          const existing = getFavoriteByNumber(num);
+                          const isUsed = existing && existing.scriptPath !== fav.scriptPath;
+                          return (
+                            <button
+                              key={num}
+                              className={`number-btn ${fav.assignedNumber === num ? 'current' : ''} ${isUsed ? 'occupied' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                reassignFavoriteNumber(fav.scriptPath, num);
+                              }}
+                              disabled={isUsed || undefined}
+                            >
+                              {num}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </>
+          )}
 
-                  {isRecent && (
-                    <div className="recent-actions">
-                      <span className="recent-badge">recent</span>
+          {hasFavorites && <div className="list-section-header">RECENT</div>}
+          {!hasFavorites && <div className="list-section-header">RECENT</div>}
+
+          {recentScripts.map((script, index) => {
+            const isRecent = !query;
+            const listIndex = favoritesInList.length + index;
+            const globalIndex = listIndex;
+            return (
+              <React.Fragment key={`recent-${script.path}`}>
+                {index === 0 && hasFavorites && (
+                  <div className="list-section-header">ALL SCRIPTS</div>
+                )}
+                {!hasFavorites && index === 0 && (
+                  <div className="list-section-header">ALL SCRIPTS</div>
+                )}
+                <li
+                  className={`command-item ${globalIndex === selectedIndex ? 'active' : ''}`}
+                  onClick={() => handleSelect(script)}
+                  onMouseEnter={() => setSelectedIndex(globalIndex)}
+                >
+                  <span className="command-name">{script.name || 'Untitled'}</span>
+                  <span className="command-desc">{script.description}</span>
+                  <div className="command-actions">
+                    {isFavorite(script.path) && (
+                      <span className="favorite-star active" title="In favorites">
+                        ★
+                      </span>
+                    )}
+                    {!isFavorite(script.path) && (
                       <button
-                        className="remove-recent-btn"
-                        onClick={(e) => handleRemoveRecent(e, script.path)}
-                        title="Remove from recent"
+                        className="favorite-star"
+                        onClick={(e) => handleToggleFavorite(e, script)}
+                        title="Add to favorites"
                       >
-                        ×
+                        ★
                       </button>
-                    </div>
-                  )}
+                    )}
+                    {isRecent && (
+                      <div className="recent-actions">
+                        <span className="recent-badge">recent</span>
+                        <button
+                          className="remove-recent-btn"
+                          onClick={(e) => handleRemoveRecent(e, script.path)}
+                          title="Remove from recent"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </li>
               </React.Fragment>
             );

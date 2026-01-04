@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::Manager;
+use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 // Struct for parsing JSON from file comments
 #[derive(Deserialize, Debug)]
@@ -190,6 +190,29 @@ pub fn run() {
                     .plugin(tauri_plugin_updater::Builder::default().build())?;
                 app.handle().plugin(tauri_plugin_process::init())?;
             }
+
+            // Create main window with transparent titlebar on macOS
+            #[cfg(target_os = "macos")]
+            {
+                let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                    .title("Boop2")
+                    .inner_size(900.0, 700.0)
+                    .title_bar_style(TitleBarStyle::Transparent);
+
+                let window = win_builder.build()?;
+
+                // Set window background color to transparent
+                unsafe {
+                    use cocoa::appkit::{NSColor, NSWindow};
+                    use cocoa::base::{id, nil};
+
+                    let ns_window = window.ns_window().unwrap() as id;
+                    // Use clear color for transparency
+                    let clear_color = NSColor::clearColor(nil);
+                    ns_window.setBackgroundColor_(clear_color);
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet, load_scripts])
