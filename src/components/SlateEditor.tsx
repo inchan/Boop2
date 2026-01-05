@@ -176,7 +176,7 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
 
         return ranges;
       },
-      [findState?.searchTerm, findState?.matches, findState?.activeIndex, editor.children]
+      [findState, editor.children]
     );
 
     // 활성 매치로 스크롤 및 선택 영역 이동
