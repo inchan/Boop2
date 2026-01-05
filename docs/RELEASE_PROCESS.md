@@ -100,10 +100,51 @@ To trigger an automated release:
 
 Once the tag is pushed, the **Release Workflow** (`release.yml`) will:
 
-1. Detect the new tag.
-2. Build the application for **macOS (Intel + Apple Silicon)**, **Linux (x64)**, and **Windows (x64)**.
-3. Create a new GitHub Release with the tag name.
-4. Upload all generated artifacts (.dmg, .deb, .AppImage, .msi, etc.).
+### Workflow Stages
+
+| Stage             | Description                                               | Runs On            |
+| ----------------- | --------------------------------------------------------- | ------------------ |
+| **validate**      | Pre-flight checks (lint, test, cargo check, version sync) | ubuntu-latest      |
+| **build**         | Platform-specific builds (macOS, Linux, Windows)          | 3 parallel runners |
+| **merge-updater** | Merge signatures and create latest.json                   | ubuntu-latest      |
+
+### Key Behaviors
+
+- **Fail-Fast:** If any platform build fails, all builds stop immediately
+- **Concurrency:** Only one release runs at a time; in-progress runs are cancelled on new push
+- **Status Tracking:** Each stage updates the commit status (visible in PR/commits page)
+- **Pre-flight Validation:** Before building, the workflow validates:
+  - `npm run lint` passes
+  - `npm run test` passes
+  - `cargo check` passes
+  - Version numbers match between `package.json` and `tauri.conf.json`
+
+### Manual Rerun
+
+If a build fails, you can manuallyun from Git rerHub Actions:
+
+1. Go to **Actions** → **Release** workflow
+2. Select the failed run
+3. Click **Rerun workflow** (top right)
+4. Optionally provide a reason for the rerun
+
+> **Note:** The `workflow_dispatch` input allows manual triggering without a tag.
+
+### Release Status
+
+Track progress via commit status badges or GitHub Actions tab:
+
+```
+✓ validate passed → Building macOS... → Building Linux... → Building Windows... → Complete
+```
+
+If any step fails, you'll see:
+
+```
+❌ validate FAILED (see logs)
+# OR
+❌ build FAILED: macOS-latest (check artifacts/logs)
+```
 
 ## 5. Verification
 
