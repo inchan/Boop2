@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+use tauri::Manager;
+
+#[cfg(target_os = "macos")]
+use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 #[cfg(target_os = "macos")]
 #[macro_use]

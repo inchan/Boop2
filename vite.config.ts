@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -12,7 +12,7 @@ export default defineConfig(async () => ({
   clearScreen: false,
 
   // 2. Set base to relative for production builds to ensure assets load correctly in Tauri
-  base: !process.env.TAURI_DEV_HOST ? "./" : "/",
+  base: !process.env.TAURI_DEV_HOST ? './' : '/',
 
   // 3. tauri expects a fixed port, fail if that port is not available
   server: {
@@ -21,14 +21,14 @@ export default defineConfig(async () => ({
     host: host || false,
     hmr: host
       ? {
-          protocol: "ws",
+          protocol: 'ws',
           host,
           port: 1421,
         }
       : undefined,
     watch: {
       // 4. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
 
@@ -37,16 +37,11 @@ export default defineConfig(async () => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: [],
+    exclude: ['node_modules', 'dist', 'e2e/**/*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src-tauri/',
-        'dist/',
-        '**/*.config.*',
-        '**/*.d.ts',
-      ],
+      exclude: ['node_modules/', 'src-tauri/', 'dist/', '**/*.config.*', '**/*.d.ts'],
       thresholds: {
         statements: 95,
         branches: 95,
