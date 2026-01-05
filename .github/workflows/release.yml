@@ -26,6 +26,8 @@ jobs:
   validate:
     name: Pre-flight Validation
     runs-on: ubuntu-22.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,6 +51,9 @@ jobs:
 
       - name: Run tests
         run: npm run test
+
+      - name: Build frontend
+        run: npm run build
 
       - name: Check Rust compilation
         run: cargo check --manifest-path src-tauri/Cargo.toml
@@ -81,15 +86,17 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target universal-apple-darwin'
-            asset_name: 'Boop2_universal.app.tar.gz'
+            asset_pattern: 'universal.app.tar.gz'
           - platform: 'ubuntu-22.04'
             args: ''
-            asset_name: 'Boop2_0.3.3_amd64.AppImage'
+            asset_pattern: 'amd64.AppImage'
           - platform: 'windows-latest'
             args: ''
-            asset_name: 'Boop2_0.3.3_x64-setup.exe'
+            asset_pattern: 'x64-setup.exe'
 
     runs-on: ${{ matrix.platform }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -162,11 +169,12 @@ jobs:
         shell: bash
         run: |
           TAG="${{ github.ref_name }}"
-          ASSET="${{ matrix.asset_name }}"
-          if gh release view "$TAG" --repo "${{ github.repository }}" | grep -q "$ASSET"; then
-            echo "✅ $ASSET uploaded successfully"
+          PATTERN="${{ matrix.asset_pattern }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -q "$PATTERN"; then
+            echo "✅ Asset matching $PATTERN uploaded successfully"
           else
-            echo "❌ $ASSET not found in release"
+            echo "❌ No asset matching $PATTERN found in release"
+            gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name'
             exit 1
           fi
 
