@@ -1,73 +1,104 @@
-# Implementation Plan: Editor Find Functionality
+# Implementation Plan: [FEATURE]
 
-**Branch**: `006-editor-find` | **Date**: 2026-01-05 | **Spec**: [link](spec.md)
-**Input**: Feature specification from `/specs/006-editor-find/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Implement a cmd+f text find feature for the Boop2 editor using the existing Slate.js editor. The feature includes:
-
-- Find panel UI with keyboard shortcuts (cmd+f/ctrl+f, Escape)
-- Real-time text search with case-insensitive matching
-- Match highlighting and navigation (Next/Previous)
-- IME composition handling using existing `isComposingRef` pattern
-- Performance optimization for documents up to 10,000 lines
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8, React 19.1, Rust 1.75  
-**Primary Dependencies**: Slate.js 0.120, Tauri 2.0, Vite 7.0  
-**Storage**: N/A (local editor state only)  
-**Testing**: Vitest (unit), Playwright (E2E)  
-**Target Platform**: macOS, Windows, Linux (desktop via Tauri)  
-**Project Type**: Single project (React frontend + Tauri backend)  
-**Performance Goals**: Search results within 100ms per keystroke (10,000 line documents)  
-**Constraints**: Must integrate with existing Slate.js editor; use existing IME handling pattern  
-**Scale/Scope**: Single editor instance, local document search only
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
-_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-No constitution defined. Skipping gate checks.
-
-**Post-Phase 1 Re-check**: All design decisions align with existing codebase patterns (Slate.js, React hooks, Tauri). No conflicts detected.
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/006-editor-find/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-└── tasks.md             # Phase 2 output (/speckit.tasks command)
+specs/[###-feature]/
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── components/
-│   ├── FindPanel.tsx    # NEW: Find panel UI component
-│   └── SlateEditor.tsx  # EXISTING: Editor with find integration
-├── hooks/
-│   └── useFind.ts       # NEW: Find state management hook
+├── models/
+├── services/
+├── cli/
 └── lib/
-    └── findUtils.ts     # NEW: Search algorithm utilities
 
 tests/
-├── unit/
-│   └── find.test.ts     # NEW: Unit tests for search logic
-└── e2e/
-    └── editor-find.spec.ts  # NEW: E2E tests for find feature
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: React components in `src/components/`, hook for state management in `src/hooks/`, utility functions in `src/lib/`. E2E tests extend existing Playwright test suite.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
-> N/A - No constitution violations
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

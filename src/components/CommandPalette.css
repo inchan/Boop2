@@ -25,15 +25,43 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+.command-palette-header {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding-right: 12px;
+}
+
 .command-input {
-  width: 100%;
+  flex: 1;
   padding: 14px 18px;
   font-size: 16px;
-  background: var(--bg-secondary);
+  background: transparent;
   border: none;
   color: var(--text-primary);
   outline: none;
-  border-bottom: 1px solid var(--border-color);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--bg-tertiary);
+  opacity: 1;
 }
 
 .command-list {
@@ -57,8 +85,8 @@
   cursor: pointer;
   color: var(--text-primary);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 13px;
 }
 
@@ -67,10 +95,15 @@
   color: white;
 }
 
-.command-item.active .command-desc,
-.command-item.active .recent-badge {
-  color: #e0e0e0;
-  opacity: 0.9;
+.item-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.command-name {
+  white-space: nowrap;
 }
 
 .command-desc {
@@ -80,19 +113,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* max-width is handled by flex container now */
 }
 
-.recent-actions {
+.command-item.active .command-desc {
+  color: #e0e0e0;
+  opacity: 0.9;
+}
+
+.item-actions {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.recent-badge {
-  font-size: 10px;
-  opacity: 0.4;
-  font-style: italic;
+  justify-content: center;
 }
 
 .remove-recent-btn {
@@ -102,16 +135,14 @@
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.6;
-  transition:
-    opacity 0.2s,
-    background 0.2s;
+  transition: all 0.2s;
 }
 
 .remove-recent-btn:hover {
@@ -128,224 +159,10 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* ============================================
-    Favorites Feature Styles
-    ============================================ */
-
-/* Star icon for favorites */
-.favorite-star {
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    color 0.2s,
-    transform 0.1s;
-  padding: 4px;
-  border-radius: 4px;
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.favorite-star:hover {
-  color: #ffc107;
-  background: rgba(255, 193, 7, 0.1);
-}
-
-.favorite-star.active {
-  color: #ffc107;
-}
-
-.favorite-star:active {
-  transform: scale(0.9);
-}
-
-/* Tooltip for keyboard shortcut */
-.favorite-item {
-  position: relative;
-}
-
-.favorite-item:hover .shortcut-tooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
-.shortcut-tooltip {
-  position: absolute;
-  right: 50px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s,
-    visibility 0.2s;
-  pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.shortcut-tooltip::after {
-  content: '';
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 6px 0 6px 6px;
-  border-style: solid;
-  border-color: transparent transparent transparent var(--bg-primary);
-}
-
-.favorite-item .command-name {
-  flex: 1;
-}
-
-.favorite-item .command-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.favorite-item .shortcut-badge {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-secondary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Favorites section header */
-.favorites-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.favorites-header .star-icon {
-  font-size: 12px;
-}
-
-/* No favorites placeholder */
-.no-favorites-message {
+.no-results {
   padding: 20px 18px;
   text-align: center;
   color: var(--text-secondary);
   font-size: 12px;
   font-style: italic;
-}
-
-/* Active state for favorite items */
-.command-item.active .favorite-star {
-  color: #ffd54f;
-}
-
-.command-item.active .favorite-star:hover {
-  color: #ffeb3b;
-}
-
-.command-item.active .shortcut-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-/* ============================================
-    Number Picker (Hover + Number Assignment)
-     ============================================ */
-
-.number-picker {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  gap: 4px;
-  background: rgba(30, 30, 30, 0.95);
-  padding: 6px 10px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  animation: numberPickerFadeIn 0.15s ease-out;
-}
-
-@keyframes numberPickerFadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.number-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.number-btn:hover:not(:disabled) {
-  background: #007aff;
-  color: white;
-  transform: scale(1.1);
-}
-
-.number-btn.current {
-  background: #007aff;
-  color: white;
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.4);
-}
-
-.number-btn.occupied {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.number-btn.occupied:hover {
-  background: var(--bg-tertiary);
-  transform: none;
-}
-
-.favorite-item .number-picker {
-  /* Override tooltip positioning for number picker */
-  right: auto;
-  left: auto;
-  transform: translate(-50%, -50%);
-}
-
-.favorite-item .number-picker::after {
-  display: none;
-}
-
-/* Active state for number picker */
-.command-item.active .number-btn {
-  background: var(--bg-tertiary);
-}
-
-.command-item.active .number-btn.current {
-  background: #007aff;
-}
-
-.command-item.active .number-btn:hover:not(:disabled) {
-  background: #0066d6;
 }

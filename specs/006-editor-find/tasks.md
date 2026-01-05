@@ -22,8 +22,8 @@ description: 'Task list for Editor Find Feature implementation'
 
 **Purpose**: Create project structure and utility functions for the find feature
 
-- [ ] T001 Create find utility module `src/lib/findUtils.ts` with search algorithm
-- [ ] T002 Create TypeScript interfaces for FindState and SearchMatch in `src/types/find.ts`
+- [x] T001 Create find utility module `src/lib/findUtils.ts` with search algorithm
+- [x] T002 Create TypeScript interfaces for FindState and SearchMatch in `src/types/find.ts`
 
 ---
 
@@ -31,9 +31,9 @@ description: 'Task list for Editor Find Feature implementation'
 
 **Purpose**: Core hook that manages find state - MUST complete before ANY user story
 
-- [ ] T003 Create `useFind` hook in `src/hooks/useFind.ts` implementing FindState management
-- [ ] T004 Implement `findMatches` function in `src/lib/findUtils.ts` for text search
-- [ ] T005 Add debounce logic for search input (performance optimization)
+- [x] T003 Create `useFind` hook in `src/hooks/useFind.ts` implementing FindState management
+- [x] T004 Implement `findMatches` function in `src/lib/findUtils.ts` for text search
+- [x] T005 Add debounce logic for search input (performance optimization)
 
 **Checkpoint**: Hook ready - user story implementation can now begin
 
@@ -47,10 +47,10 @@ description: 'Task list for Editor Find Feature implementation'
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Create FindPanel component in `src/components/FindPanel.tsx`
-- [ ] T007 [P] [US1] Add CSS styles for FindPanel in `src/components/FindPanel.css`
-- [ ] T008 [US1] Integrate keyboard shortcuts (cmd+f/ctrl+f, Escape) in SlateEditor.tsx
-- [ ] T009 [US1] Implement onClose handler to hide panel and return focus to editor
+- [x] T006 [P] [US1] Create FindPanel component in `src/components/FindPanel.tsx`
+- [x] T007 [P] [US1] Add CSS styles for FindPanel in `src/components/FindPanel.css`
+- [x] T008 [US1] Integrate keyboard shortcuts (cmd+f/ctrl+f, Escape) in SlateEditor.tsx
+- [x] T009 [US1] Implement onClose handler to hide panel and return focus to editor
 
 **Checkpoint**: User can open and close the find panel with keyboard
 
@@ -64,10 +64,10 @@ description: 'Task list for Editor Find Feature implementation'
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Connect useFind hook to FindPanel component (onSearch callback)
-- [ ] T011 [US2] Implement real-time search with case-insensitive matching
-- [ ] T012 [US2] Add "No results" indicator when search finds no matches
-- [ ] T013 [US2] Integrate IME composition handling (isComposingRef check)
+- [x] T010 [US2] Connect useFind hook to FindPanel component (onSearch callback)
+- [x] T011 [US2] Implement real-time search with case-insensitive matching
+- [x] T012 [US2] Add "No results" indicator when search finds no matches
+- [x] T013 [US2] Integrate IME composition handling (isComposingRef check)
 
 **Checkpoint**: Users can search and see highlighted results
 
@@ -81,10 +81,10 @@ description: 'Task list for Editor Find Feature implementation'
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add Next/Previous buttons to FindPanel component
-- [ ] T015 [US3] Implement goToNext and goToPrevious in useFind hook
-- [ ] T016 [US3] Add keyboard shortcuts (Enter = Next, Shift+Enter = Previous)
-- [ ] T017 [US3] Implement match selection and scroll-into-view in editor
+- [x] T014 [US3] Add Next/Previous buttons to FindPanel component
+- [x] T015 [US3] Implement goToNext and goToPrevious in useFind hook
+- [x] T016 [US3] Add keyboard shortcuts (Enter = Next, Shift+Enter = Previous)
+- [x] T017 [US3] Implement match selection and scroll-into-view in editor
 
 **Checkpoint**: Users can navigate through all matches
 
@@ -98,10 +98,10 @@ description: 'Task list for Editor Find Feature implementation'
 
 ### Implementation for User Story 4
 
-- [ ] T018 [P] [US4] Add replace input field to FindPanel component
-- [ ] T019 [P] [US4] Add Replace and Replace All buttons to FindPanel
-- [ ] T020 [US4] Implement single replace logic in useFind hook
-- [ ] T021 [US4] Implement Replace All logic with confirmation
+- [x] T018 [P] [US4] Add replace input field to FindPanel component
+- [x] T019 [P] [US4] Add Replace and Replace All buttons to FindPanel
+- [x] T020 [US4] Implement single replace logic in useFind hook
+- [x] T021 [US4] Implement Replace All logic with confirmation
 
 **Checkpoint**: Users can replace text in the document
 
@@ -111,10 +111,10 @@ description: 'Task list for Editor Find Feature implementation'
 
 **Purpose**: Improvements that enhance the overall feature
 
-- [ ] T022 [P] Add unit tests for findUtils in `tests/unit/find.test.ts`
-- [ ] T023 [P] Add E2E tests for find feature in `tests/e2e/editor-find.spec.ts`
-- [ ] T024 Performance optimization for documents over 1000 lines
-- [ ] T025 Update AGENTS.md and CLAUDE.md with new feature context
+- [x] T022 [P] Add unit tests for findUtils in `src/lib/findUtils.test.ts`
+- [x] T023 [P] Add E2E tests for find feature in `e2e/editor-find.spec.ts`
+- [x] T024 Performance optimization for documents over 1000 lines (debounce 100ms, performance.now() tracking)
+- [x] T025 Update AGENTS.md and CLAUDE.md with new feature context
 
 ---
 

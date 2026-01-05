@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 import SlateEditor, { SlateEditorHandle } from './components/SlateEditor';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CommandPalette } from './components/CommandPalette';
+import { FindPanel } from './components/FindPanel';
 import { TabBar, Tab } from './components/TabBar';
 import { ClipboardPopover } from './components/ClipboardPopover';
 import { SessionPopover, Session } from './components/SessionPopover';
@@ -12,7 +13,7 @@ import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
 import { ExecutionContextData } from './lib/WorkerTypes';
 import { UpdateNotification } from './components/UpdateNotification';
 import { checkForUpdates, type UpdateInfo } from './lib/updater';
-import { useFavorites } from './hooks';
+import { useFind } from './hooks/useFind';
 import { DEFAULT_SETTINGS } from './hooks/useSettings';
 import './App.css';
 
@@ -46,7 +47,6 @@ function App() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const { executeFavorite, onScriptsLoaded } = useFavorites();
 
   useEffect(() => {
     const initialize = async () => {
@@ -127,7 +127,6 @@ function App() {
         const data = await invoke('load_scripts');
         const loadedScripts = data as ScriptModel[];
         setScripts(loadedScripts);
-        onScriptsLoaded(loadedScripts);
         if (!loadedSettings.autoRestoreLastSession || sessionStack.length === 0) {
           setStatus({ type: 'info', text: `${loadedScripts.length} scripts loaded` });
         }
@@ -148,7 +147,6 @@ function App() {
       }
     };
     initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // localStorage 저장에 debounce 적용 (300ms)
@@ -182,6 +180,31 @@ function App() {
     () => tabs.find((t) => t.id === activeTabId) || tabs[0],
     [tabs, activeTabId]
   );
+
+  // 교체 콜백: 에디터 내용 업데이트
+  const handleReplace = useCallback(
+    (newText: string) => {
+      setTabs((prev) => prev.map((t) => (t.id === activeTabId ? { ...t, content: newText } : t)));
+    },
+    [activeTabId]
+  );
+
+  // Find feature hook
+  const {
+    findState,
+    closeFind,
+    toggleFind,
+    setSearchTerm,
+    setReplaceTerm,
+    goToNext,
+    goToPrevious,
+    replaceCurrent,
+    replaceAll,
+  } = useFind({
+    documentText: activeTab?.content || '',
+    initialOpen: false,
+    onReplace: handleReplace,
+  });
 
   const handleAddTab = useCallback(() => {
     const newId = generateId();
@@ -263,6 +286,18 @@ function App() {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        toggleFind();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'h' && e.shiftKey) {
+        e.preventDefault();
+        replaceCurrent();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'h' && e.altKey) {
+        e.preventDefault();
+        replaceAll();
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 't') {
         e.preventDefault();
         handleAddTab();
@@ -275,22 +310,19 @@ function App() {
         const index = parseInt(e.key) - 1;
         if (tabs[index]) setActiveTabId(tabs[index].id);
       }
-      if ((e.metaKey || e.ctrlKey) && /^[1-5]$/.test(e.key)) {
-        const number = parseInt(e.key);
-        const scriptPath = executeFavorite(number);
-        if (scriptPath) {
-          const script = scripts.find((s) => s.path === scriptPath);
-          if (script) {
-            e.preventDefault();
-            runSelectedScript(script);
-          }
-        }
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabId, handleAddTab, handleCloseTab, tabs, scripts, executeFavorite]);
+  }, [
+    activeTabId,
+    handleAddTab,
+    handleCloseTab,
+    tabs,
+    scripts,
+    toggleFind,
+    replaceCurrent,
+    replaceAll,
+  ]);
 
   const runSelectedScript = useCallback(async (script: ScriptModel) => {
     setIsPaletteOpen(false);
@@ -350,6 +382,20 @@ function App() {
         onClose={() => setIsPaletteOpen(false)}
         scripts={scripts}
         onSelect={runSelectedScript}
+      />
+      <FindPanel
+        isOpen={findState.isOpen}
+        onClose={closeFind}
+        onSearch={setSearchTerm}
+        onReplace={setReplaceTerm}
+        onNext={goToNext}
+        onPrevious={goToPrevious}
+        onReplaceCurrent={replaceCurrent}
+        onReplaceAll={replaceAll}
+        matchCount={findState.matches.length}
+        activeIndex={findState.activeIndex}
+        hasNoMatches={findState.searchTerm !== '' && findState.matches.length === 0}
+        replaceTerm={findState.replaceTerm}
       />
       {isClipboardOpen && settings.enableClipboardHistory && (
         <ClipboardPopover
@@ -412,6 +458,7 @@ function App() {
           onChange={handleTabContentChange}
           autoFocus={true}
           placeholder="Type or paste text here..."
+          findState={findState}
         />
       </ErrorBoundary>
 
