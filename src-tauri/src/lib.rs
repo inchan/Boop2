@@ -3,6 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
+#[cfg(target_os = "macos")]
+#[macro_use]
+extern crate objc;
+
 // Struct for parsing JSON from file comments
 #[derive(Deserialize, Debug)]
 struct ScriptJson {
@@ -201,15 +205,42 @@ pub fn run() {
 
                 let window = win_builder.build()?;
 
-                // Set window background color to transparent
+                // Set window background color based on system theme
                 unsafe {
                     use cocoa::appkit::{NSColor, NSWindow};
                     use cocoa::base::{id, nil};
+                    use cocoa::foundation::NSString;
 
                     let ns_window = window.ns_window().unwrap() as id;
-                    // Use clear color for transparency
-                    let clear_color = NSColor::clearColor(nil);
-                    ns_window.setBackgroundColor_(clear_color);
+
+                    // Detect system dark mode
+                    let defaults: id = cocoa::foundation::NSUserDefaults::standardUserDefaults();
+                    let key = NSString::alloc(nil).init_str("AppleInterfaceStyle");
+                    let interface_style: id = msg_send![defaults, stringForKey: key];
+                    let is_dark_mode = if interface_style != nil {
+                        let style_str = std::ffi::CStr::from_ptr(
+                            cocoa::foundation::NSString::UTF8String(interface_style),
+                        )
+                        .to_string_lossy();
+                        style_str == "Dark"
+                    } else {
+                        false // Light mode if key doesn't exist
+                    };
+
+                    // Set background color based on theme
+                    // Dark mode: #1e1e1e (30, 30, 30), Light mode: #ffffff (255, 255, 255)
+                    let bg_color = if is_dark_mode {
+                        NSColor::colorWithRed_green_blue_alpha_(
+                            nil,
+                            30.0 / 255.0,
+                            30.0 / 255.0,
+                            30.0 / 255.0,
+                            1.0,
+                        )
+                    } else {
+                        NSColor::colorWithRed_green_blue_alpha_(nil, 1.0, 1.0, 1.0, 1.0)
+                    };
+                    ns_window.setBackgroundColor_(bg_color);
                 }
             }
 

@@ -37,14 +37,15 @@ boop2/
 
 ## CODE MAP
 
-| Symbol           | Location                          | Role                          |
-| ---------------- | --------------------------------- | ----------------------------- |
-| `App`            | src/App.tsx                       | Root component, global state  |
-| `SlateEditor`    | src/components/SlateEditor.tsx    | Core editor (Slate.js)        |
-| `CommandPalette` | src/components/CommandPalette.tsx | Script search/execution UI    |
-| `runScriptAsync` | src/lib/ScriptRunner.ts           | Worker dispatch               |
-| `WorkerPool`     | src/lib/WorkerPool.ts             | Concurrent script execution   |
-| `load_scripts`   | src-tauri/src/lib.rs              | Rust: scan script directories |
+| Symbol           | Location                          | Role                                    |
+| ---------------- | --------------------------------- | --------------------------------------- |
+| `App`            | src/App.tsx                       | Root component, global state            |
+| `SlateEditor`    | src/components/SlateEditor.tsx    | Core editor (Slate.js)                  |
+| `CommandPalette` | src/components/CommandPalette.tsx | Script search/execution UI              |
+| `runScriptAsync` | src/lib/ScriptRunner.ts           | Worker dispatch                         |
+| `WorkerPool`     | src/lib/WorkerPool.ts             | Concurrent script execution             |
+| `load_scripts`   | src-tauri/src/lib.rs              | Rust: scan script directories           |
+| `run` (setup)    | src-tauri/src/lib.rs              | macOS theme detection + window bg color |
 
 ## CONVENTIONS
 
