@@ -18,6 +18,7 @@ import {
   BaseEditor,
   Operation,
   Node,
+  BaseRange,
 } from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
@@ -33,7 +34,9 @@ type ParagraphElement = {
 };
 
 type CustomElement = ParagraphElement;
-type CustomText = { text: string };
+type CustomText = {
+  text: string;
+};
 
 type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 
@@ -42,6 +45,10 @@ declare module 'slate' {
     Editor: CustomEditor;
     Element: CustomElement;
     Text: CustomText;
+    Range: BaseRange & {
+      highlight?: boolean;
+      activeHighlight?: boolean;
+    };
   }
 }
 
@@ -66,6 +73,11 @@ interface SlateEditorProps {
   onChange?: (value: string) => void;
   autoFocus?: boolean;
   placeholder?: string;
+  findState?: {
+    searchTerm: string;
+    matches: Array<{ start: number; end: number; line: number }>;
+    activeIndex: number;
+  };
 }
 
 // 텍스트를 Slate 노드로 변환
@@ -110,7 +122,7 @@ const getAbsoluteOffset = (editor: Editor, path: number[], offset: number): numb
 };
 
 const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
-  ({ initialValue = '', onChange, autoFocus = true, placeholder = '' }, ref) => {
+  ({ initialValue = '', onChange, autoFocus = true, placeholder = '', findState }, ref) => {
     const [editor] = useState(() => withReact(withHistory(createEditor())));
     const gutterRef = useRef<HTMLDivElement>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -122,6 +134,63 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
     const initialSlateValue = useMemo(() => {
       return textToSlateValue(initialValue);
     }, [initialValue]);
+
+    const decorate = useCallback(
+      ([node, path]: [Node, number[]]) => {
+        const ranges: Range[] = [];
+
+        if (!findState?.searchTerm || findState.matches.length === 0) {
+          return ranges;
+        }
+
+        if (!Text.isText(node)) {
+          return ranges;
+        }
+
+        const lineIndex = path[0];
+        const matchesInLine = findState.matches.filter((m) => m.line === lineIndex);
+
+        let lineStartOffset = 0;
+        for (let i = 0; i < lineIndex; i++) {
+          const lineNode = editor.children[i];
+          if (SlateElement.isElement(lineNode)) {
+            const lineText = Node.string(lineNode);
+            lineStartOffset += lineText.length + 1;
+          }
+        }
+
+        matchesInLine.forEach((match) => {
+          const relativeStart = match.start - lineStartOffset;
+          const relativeEnd = match.end - lineStartOffset;
+          const globalMatchIndex = findState.matches.indexOf(match);
+          const isActive = globalMatchIndex === findState.activeIndex;
+
+          if (relativeStart >= 0 && relativeEnd >= relativeStart) {
+            ranges.push({
+              anchor: { path, offset: relativeStart },
+              focus: { path, offset: relativeEnd },
+              [isActive ? 'activeHighlight' : 'highlight']: true,
+            });
+          }
+        });
+
+        return ranges;
+      },
+      [findState?.searchTerm, findState?.matches, findState?.activeIndex, editor.children]
+    );
+
+    // 활성 매치로 스크롤 및 선택 영역 이동
+    useEffect(() => {
+      if (findState?.searchTerm && findState.matches.length > 0 && findState.activeIndex >= 0) {
+        const activeMatch = findState.matches[findState.activeIndex];
+        if (activeMatch && activeMatch.line < editor.children.length) {
+          const lineElement = editorContainerRef.current?.querySelector(
+            `.slate-paragraph:nth-of-type(${activeMatch.line + 1})`
+          );
+          lineElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, [findState?.activeIndex, findState?.matches, findState?.searchTerm, editor.children.length]);
 
     // 외부 인터페이스 노출
     useImperativeHandle(
@@ -417,6 +486,34 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
       ));
     }, [lineCount, activeLine]);
 
+    // 텍스트 리프 렌더링 (하이라이트 decoration 적용)
+    const renderLeaf = useCallback(
+      (props: {
+        attributes: object;
+        children: React.ReactNode;
+        leaf: CustomText & Partial<Range>;
+      }) => {
+        const { attributes, children, leaf } = props;
+        let className = '';
+
+        // activeHighlight decoration 확인 (활성 매치)
+        if (leaf.activeHighlight) {
+          className = 'find-match-active';
+        }
+        // highlight decoration 확인 (일반 매치)
+        else if (leaf.highlight) {
+          className = 'find-match';
+        }
+
+        return (
+          <span {...attributes} className={className}>
+            {children}
+          </span>
+        );
+      },
+      []
+    );
+
     return (
       <div className="slate-editor-container" ref={editorContainerRef}>
         <div className="slate-gutter-wrapper">
@@ -439,6 +536,8 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
             onSelect={handleSelect}
             onCopy={handleCopy}
             renderElement={renderElement}
+            renderLeaf={renderLeaf}
+            decorate={decorate}
           />
         </Slate>
       </div>
