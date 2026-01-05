@@ -25,15 +25,18 @@ boop2/
 
 ## WHERE TO LOOK
 
-| Task              | Location                                  | Notes                                            |
-| ----------------- | ----------------------------------------- | ------------------------------------------------ |
-| Editor behavior   | `src/components/SlateEditor.tsx`          | IME, Tab indent, Copy handling                   |
-| Script execution  | `src/lib/WorkerPool.ts`                   | Web Worker pool for non-blocking execution       |
-| Add new script    | `src-tauri/scripts/`                      | Follow metadata format `/** { "name": ... } **/` |
-| Tab/session state | `src/hooks/useTabs.ts`, `useSessions.ts`  | localStorage persistence                         |
-| Backend commands  | `src-tauri/src/lib.rs`                    | Tauri IPC: `load_scripts`                        |
-| E2E tests         | `e2e/*.spec.ts`                           | Playwright + `EditorHelper` utility              |
-| CI/CD             | `.github/workflows/ci.yml`, `release.yml` | Multi-platform build                             |
+| Task               | Location                                  | Notes                                            |
+| ------------------ | ----------------------------------------- | ------------------------------------------------ |
+| Editor behavior    | `src/components/SlateEditor.tsx`          | IME, Tab indent, Copy handling                   |
+| **Find feature**   | `src/components/FindPanel.tsx`            | Search panel UI, keyboard shortcuts              |
+| **Find highlight** | `src/components/SlateEditor.tsx`          | Slate decorations for search results             |
+| **Find state**     | `src/hooks/useFind.ts`                    | Search state management (open/close, matches)    |
+| Script execution   | `src/lib/WorkerPool.ts`                   | Web Worker pool for non-blocking execution       |
+| Add new script     | `src-tauri/scripts/`                      | Follow metadata format `/** { "name": ... } **/` |
+| Tab/session state  | `src/hooks/useTabs.ts`, `useSessions.ts`  | localStorage persistence                         |
+| Backend commands   | `src-tauri/src/lib.rs`                    | Tauri IPC: `load_scripts`                        |
+| E2E tests          | `e2e/*.spec.ts`                           | Playwright + `EditorHelper` utility              |
+| CI/CD              | `.github/workflows/ci.yml`, `release.yml` | Multi-platform build                             |
 
 ## CODE MAP
 
@@ -42,8 +45,11 @@ boop2/
 | `App`            | src/App.tsx                       | Root component, global state            |
 | `SlateEditor`    | src/components/SlateEditor.tsx    | Core editor (Slate.js)                  |
 | `CommandPalette` | src/components/CommandPalette.tsx | Script search/execution UI              |
+| `FindPanel`      | src/components/FindPanel.tsx      | Find/replace UI with keyboard nav       |
+| `useFind`        | src/hooks/useFind.ts              | Search state management                 |
 | `runScriptAsync` | src/lib/ScriptRunner.ts           | Worker dispatch                         |
 | `WorkerPool`     | src/lib/WorkerPool.ts             | Concurrent script execution             |
+| `findMatches`    | src/lib/findUtils.ts              | Text search algorithm                   |
 | `load_scripts`   | src-tauri/src/lib.rs              | Rust: scan script directories           |
 | `run` (setup)    | src-tauri/src/lib.rs              | macOS theme detection + window bg color |
 
@@ -54,6 +60,13 @@ boop2/
 - Custom `Descendant[]` for paragraphs
 - Manual IME handling via `isComposingRef`
 - Tab key → 4 spaces (INDENT constant)
+
+### Find Feature
+
+- Search state managed by `useFind` hook (`src/hooks/useFind.ts`)
+- Debounced search (100ms) for performance
+- Slate decorations for highlighting (not Marks - see `006-find-highlight-fixes`)
+- Keyboard shortcuts: Cmd+F (open), Escape (close), Enter (next), Shift+Enter (previous)
 
 ### State Management
 
@@ -83,6 +96,7 @@ function main(input) {
 - **Unit**: Vitest (`npm test`) - `src/lib/*.test.ts`
 - **E2E**: Playwright (`npm run test:e2e`) - `e2e/*.spec.ts`
 - Use `EditorHelper` class for Slate interactions
+- **Find tests**: `e2e/editor-find.spec.ts` (15 test cases)
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
