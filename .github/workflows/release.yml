@@ -84,10 +84,10 @@ jobs:
             asset_name: 'Boop2_universal.app.tar.gz'
           - platform: 'ubuntu-22.04'
             args: ''
-            asset_name: 'Boop2_amd64.AppImage'
+            asset_name: 'Boop2_0.3.3_amd64.AppImage'
           - platform: 'windows-latest'
             args: ''
-            asset_name: 'Boop2_x64-setup.exe'
+            asset_name: 'Boop2_0.3.3_x64-setup.exe'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -96,11 +96,12 @@ jobs:
 
       - name: Report build started
         if: always()
+        shell: bash
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
             --state pending \
             --description "Building for ${{ matrix.platform }}..." \
-            --target-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ matrix.job }}" \
+            --target-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             || true
 
       - name: Install dependencies (Ubuntu only)
@@ -158,6 +159,7 @@ jobs:
 
       - name: Verify asset was uploaded
         id: verify-asset
+        shell: bash
         run: |
           TAG="${{ github.ref_name }}"
           ASSET="${{ matrix.asset_name }}"
@@ -170,6 +172,7 @@ jobs:
 
       - name: Report build success
         if: always() && success()
+        shell: bash
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
             --state success \
@@ -178,11 +181,12 @@ jobs:
 
       - name: Report build failure
         if: always() && failure()
+        shell: bash
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
             --state failure \
             --description "Build FAILED for ${{ matrix.platform }}" \
-            --target-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ matrix.job }}" \
+            --target-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             || true
 
           echo ""
