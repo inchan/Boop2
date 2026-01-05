@@ -89,7 +89,7 @@ As a user, I want to replace specific text with new text so that I can make targ
 - **FR-006**: System MUST close the find panel and return focus to the editor when the user presses `Escape`.
 - **FR-007**: System MUST clear search highlights when the find panel is closed.
 - **FR-008**: System MUST support case-insensitive matching by default.
-- **FR-009**: System MUST continue to highlight matches as the user types the search term (real-time search).
+- **FR-010**: System MUST ignore search input during IME composition and only search when composition is committed (using existing `isComposingRef` pattern).
 
 ### Key Entities
 
@@ -102,7 +102,7 @@ As a user, I want to replace specific text with new text so that I can make targ
 ### Measurable Outcomes
 
 - **SC-001**: Users can open the find panel within 1 second of pressing cmd+f.
-- **SC-002**: Search results appear within 100ms of each keystroke for documents up to 1000 lines.
+- **SC-002**: Search results appear within 100ms of each keystroke for documents up to 10,000 lines. For documents exceeding 1000 lines, search optimization (debounced search, algorithm improvement) is applied to maintain performance.
 - **SC-003**: 95% of users can successfully find a specific text string on their first attempt.
 - **SC-004**: Users can navigate through all matches without performance degradation.
 - **SC-005**: The find panel opens and closes smoothly without blocking editor interaction.
@@ -114,3 +114,11 @@ As a user, I want to replace specific text with new text so that I can make targ
 - Search matches are highlighted using a visual style consistent with the editor theme.
 - The find panel appears at a consistent location (e.g., top of editor window) rather than floating.
 - Regular expression search is not required for the initial implementation.
+
+## Clarifications
+
+### Session 2026-01-05
+
+- Q: IME 조합 중 검색 동작 방식 → A: IME 조합 무시, 최종 커밋에서만 검색 실행 (기존 isComposingRef 패턴 적용)
+- Q: 검색 기능 접근성 지원 수준 → A: 접근성 지원 없음 (최소한의 구현)
+- Q: 긴 문서(1000줄+) 성능 처리 방식 → A: 임계점 도달 시 검색 최적화 적용 (성능 목표 10000줄로 상향)
