@@ -16,12 +16,59 @@ Before releasing, ensure you run these commands locally to prevent CI/CD failure
 
 > **⚠️ IMPORTANT:** Always run `lint` and `test` locally before pushing. The `pre-push` hook will block the push if they fail, but it's better to catch issues early.
 
+### Required Checks
+
 - [ ] All tests pass locally: `npm run test` (Unit) & `npm run test:e2e` (E2E)
 - [ ] Code is formatted: `npm run format`
 - [ ] Linting is clean: `npm run lint` (Fix any errors before committing!)
+- [ ] Rust builds pass: `cargo check` (runs on Linux CI)
 - [ ] Version in `package.json` is updated.
 - [ ] Version in `src-tauri/tauri.conf.json` is updated.
 - [ ] Documentation is up to date.
+
+### Common CI Failures & Solutions
+
+#### Rust: Unused Imports on Linux
+
+If you add macOS-specific code (e.g., `cocoa`, `objc`, `TitleBarStyle`), you **must** use conditional compilation:
+
+```rust
+// ✅ CORRECT: Conditional compilation
+#[cfg(target_os = "macos")]
+use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+
+// ❌ WRONG: Unconditional import (fails on Linux CI)
+// use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+```
+
+#### Playwright: Version Conflict with Vitest
+
+If E2E tests fail with `two different versions of @playwright/test`:
+
+```bash
+# Solution: Reinstall dependencies with fresh lock file
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### Lint: useEffect Dependency Warnings
+
+When adding dependencies to `useEffect` arrays:
+
+- **Option 1:** Add the correct dependency (if the value is stable via `useCallback`)
+- **Option 2:** Use `// eslint-disable-next-line react-hooks/exhaustive-deps` on the `useEffect` line itself, NOT on the function call
+
+```typescript
+// ✅ CORRECT: Directive on useEffect declaration
+useEffect(() => {
+  initialize();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [onScriptsLoaded]);
+
+// ❌ WRONG: Directive on function call (may not suppress correctly)
+// onScriptsLoaded(loadedScripts);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+```
 
 ## 3. Creating a Release
 
