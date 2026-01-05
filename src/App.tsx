@@ -127,7 +127,6 @@ function App() {
         const data = await invoke('load_scripts');
         const loadedScripts = data as ScriptModel[];
         setScripts(loadedScripts);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         onScriptsLoaded(loadedScripts);
         if (!loadedSettings.autoRestoreLastSession || sessionStack.length === 0) {
           setStatus({ type: 'info', text: `${loadedScripts.length} scripts loaded` });
@@ -149,6 +148,7 @@ function App() {
       }
     };
     initialize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // localStorage 저장에 debounce 적용 (300ms)
@@ -289,6 +289,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabId, handleAddTab, handleCloseTab, tabs, scripts, executeFavorite]);
 
   const runSelectedScript = useCallback(async (script: ScriptModel) => {
