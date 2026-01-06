@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import debounce from 'lodash/debounce';
-import SlateEditor, { SlateEditorHandle } from './components/SlateEditor';
+import { createEditor, Descendant } from 'slate';
+import { withReact } from 'slate-react';
+import { withHistory } from 'slate-history';
+import SlateEditor, { SlateEditorHandle, CustomEditor } from './components/SlateEditor';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CommandPalette } from './components/CommandPalette';
 import { FindPanel } from './components/FindPanel';
@@ -39,6 +42,45 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const slateEditorRef = useRef<SlateEditorHandle>(null);
+  // 텍스트를 Slate 노드로 변환하는 헬퍼
+  const textToSlateValue = (text: string): Descendant[] => {
+    const lines = text.split('\n');
+    return lines.map((line) => ({
+      type: 'paragraph' as const,
+      children: [{ text: line }],
+    }));
+  };
+
+  // 탭별 에디터 인스턴스 맵 (FR-001: 각 탭마다 독립적인 Undo/Redo 히스토리)
+  // useRef로 관리하여 즉시 동기화 가능, 리렌더링 트리거용 상태 별도 관리
+  const editorsMapRef = useRef<Map<string, CustomEditor>>(new Map());
+  const [editorVersion, setEditorVersion] = useState(0); // 리렌더링 트리거
+
+  // 현재 활성 탭의 에디터 인스턴스 (FR-005: 새 탭 생성 시 빈 히스토리로 초기화)
+  const activeEditor = useMemo((): CustomEditor => {
+    if (!activeTabId) {
+      // 초기 상태에서 임시 에디터 반환
+      const tempEditor = withReact(withHistory(createEditor())) as CustomEditor;
+      tempEditor.children = textToSlateValue('');
+      return tempEditor;
+    }
+
+    // 기존 에디터 반환
+    const existing = editorsMapRef.current.get(activeTabId);
+    if (existing) {
+      return existing;
+    }
+
+    // 해당 탭의 콘텐츠로 새 에디터 생성 및 즉시 저장
+    const tabContent = tabs.find((t) => t.id === activeTabId)?.content || '';
+    const newEditor = withReact(withHistory(createEditor())) as CustomEditor;
+    newEditor.children = textToSlateValue(tabContent);
+    editorsMapRef.current.set(activeTabId, newEditor);
+
+    return newEditor;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabId, editorVersion, tabs]);
+
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [status, setStatus] = useState<{ type: 'info' | 'error' | 'success'; text: string }>({
@@ -214,6 +256,10 @@ function App() {
 
   const handleCloseTab = useCallback(
     (id: string) => {
+      // FR-006: 탭 닫기 시 해당 탭의 히스토리 정리 (메모리 누수 방지)
+      editorsMapRef.current.delete(id);
+      setEditorVersion((v) => v + 1); // 리렌더링 트리거
+
       if (tabs.length <= 1) {
         const newId = generateId();
         setTabs([{ id: newId, title: 'Untitled', content: '' }]);
@@ -454,6 +500,7 @@ function App() {
       <ErrorBoundary>
         <SlateEditor
           ref={slateEditorRef}
+          editor={activeEditor}
           initialValue={activeTab?.content || ''}
           onChange={handleTabContentChange}
           autoFocus={true}
