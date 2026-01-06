@@ -166,7 +166,24 @@ Once the tag is pushed, the **Release Workflow** (`release.yml`) will:
 | ----------------- | --------------------------------------------------------- | ------------------ |
 | **validate**      | Pre-flight checks (lint, test, cargo check, version sync) | ubuntu-latest      |
 | **build**         | Platform-specific builds (macOS, Linux, Windows)          | 3 parallel runners |
-| **merge-updater** | Merge signatures and create latest.json                   | ubuntu-latest      |
+| **merge-updater** | Merge signatures and create latest.json for auto-updates  | ubuntu-latest      |
+
+### About merge-updater
+
+The `merge-updater` job creates `latest.json` - a metadata file used by Tauri for auto-updates:
+
+```json
+{
+  "version": "0.3.5",
+  "platforms": {
+    "darwin-universal": { "signature": "...", "url": "..." },
+    "linux-x64": { "signature": "...", "url": "..." },
+    "windows-x64": { "signature": "...", "url": "..." }
+  }
+}
+```
+
+> **Note:** The `Final status check` step may show as failed (exit code 4) due to `GH_TOKEN` environment variable issue. This is a known cosmetic issue - **the release and latest.json are created successfully regardless**.
 
 ### Key Behaviors
 
