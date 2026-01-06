@@ -19,19 +19,72 @@ Boop2 follows [Semantic Versioning (SemVer)](https://semver.org/):
 
 ## 2. Pre-release Checklist
 
-Before releasing, ensure you run these commands locally to prevent CI/CD failures:
+> **⚠️ IMPORTANT:** Always run all local checks before pushing. This prevents CI/CD failures and ensures a smooth release process.
 
-> **⚠️ IMPORTANT:** Always run `lint` and `test` locally before pushing. The `pre-push` hook will block the push if they fail, but it's better to catch issues early.
+### Step 1: Local Validation (Run All Before Pushing)
 
-### Required Checks
+Always perform these validations locally **before** creating a release:
 
-- [ ] All tests pass locally: `npm run test` (Unit) & `npm run test:e2e` (E2E)
-- [ ] Code is formatted: `npm run format`
-- [ ] Linting is clean: `npm run lint` (Fix any errors before committing!)
-- [ ] Rust builds pass: `cargo check` (runs on Linux CI)
-- [ ] Version in `package.json` is updated.
-- [ ] Version in `src-tauri/tauri.conf.json` is updated.
-- [ ] Documentation is up to date.
+```bash
+# From project root
+
+# 1. Frontend checks
+npm run lint              # ESLint (fix errors first!)
+npm run format            # Prettier formatting
+npm run format:check      # Verify formatting
+npm run test              # Unit tests (Vitest)
+npm run test:e2e          # E2E tests (Playwright)
+
+# 2. TypeScript check
+npx tsc --noEmit          # TypeScript compilation
+
+# 3. Rust checks
+cargo fmt --check --manifest-path src-tauri/Cargo.toml  # Rust formatting
+cargo clippy --manifest-path src-tauri/Cargo.toml       # Rust linting
+cargo check --manifest-path src-tauri/Cargo.toml        # Rust compilation
+
+# 4. Build test (optional but recommended)
+npm run build            # Frontend build
+# npm run tauri build -- --bundles app  # Full bundle test (macOS only)
+```
+
+** Checklist:**
+
+- [ ] `npm run lint` passes (no errors)
+- [ ] `npm run format:check` passes
+- [ ] `npm run test` passes (all 115+ tests)
+- [ ] `npm run test:e2e` passes (E2E tests)
+- [ ] `npx tsc --noEmit` passes (no TypeScript errors)
+- [ ] `cargo fmt --check` passes
+- [ ] `cargo clippy` passes (no warnings as errors)
+- [ ] `cargo check` passes
+
+### Step 2: Version Update
+
+After local validation passes, update version numbers:
+
+```bash
+# Update both files to the same version (e.g., 0.3.5)
+# Edit package.json: "version": "0.3.5"
+# Edit src-tauri/tauri.conf.json: "version": "0.3.5"
+
+git add package.json src-tauri/tauri.conf.json
+git commit -m "chore: bump version to v0.3.5"
+git push origin main
+```
+
+### Step 3: Create Tag & Release
+
+```bash
+# Create and push version tag
+git tag v0.3.5
+git push origin v0.3.5
+
+# GitHub Actions will automatically:
+# 1. Run Pre-flight Validation (lint, test, cargo check)
+# 2. Build for macOS, Linux, Windows
+# 3. Create release with binaries
+```
 
 ### Common CI Failures & Solutions
 
