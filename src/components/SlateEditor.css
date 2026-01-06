@@ -14,6 +14,7 @@
   font-size: 13px;
   line-height: 1.6;
   overflow: hidden;
+  min-height: 0; /* Important for flex child scroll */
 }
 
 /* Line Numbers Gutter */
@@ -44,7 +45,7 @@
 /* Main Editor Area */
 .slate-editor {
   flex: 1;
-  padding: 10px 16px;
+  padding: 2px 8px;
   background-color: var(--editor-bg, var(--bg-primary));
   color: var(--text-primary);
   caret-color: var(--text-primary);

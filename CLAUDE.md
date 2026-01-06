@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-04
 ## Active Technologies
 - TypeScript 5.8, React 19.1, Rust 1.75 + Tauri 2.0, Slate.js 0.120, Vite 7.0 (009-fix-command-palette)
 - localStorage (`boop_recent_scripts`) (009-fix-command-palette)
+- TypeScript 5.8, React 19.1 + Slate.js 0.120, slate-history 0.113.1, slate-react 0.120 (010-fix-tab-undo)
+- N/A (in-memory state only) (010-fix-tab-undo)
 
 - TypeScript 5.x (React 19) + Tauri 2.0, Slate.js (editor), CSS Custom Properties (004-theme-support)
 - N/A (CSS-only, no persistence needed) (004-theme-support)
@@ -31,10 +33,10 @@ npm test && npm run lint
 TypeScript 5.x, JavaScript ES2022: Follow standard conventions
 
 ## Recent Changes
+- 010-fix-tab-undo: Added TypeScript 5.8, React 19.1 + Slate.js 0.120, slate-history 0.113.1, slate-react 0.120
 - 009-fix-command-palette: Added TypeScript 5.8, React 19.1, Rust 1.75 + Tauri 2.0, Slate.js 0.120, Vite 7.0
 
 - 007-find-highlight-sync: Added Editor.addMark/removeMark for highlight synchronization
-- 006-editor-find: Added TypeScript 5.8, React 19.1, Rust 1.75 + Slate.js 0.120, Tauri 2.0, Vite 7.0
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
