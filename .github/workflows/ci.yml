@@ -83,11 +83,11 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
-            bundles: none
+            bundles: appimage
           - platform: macos-latest
             bundles: app
           - platform: windows-latest
-            bundles: none
+            bundles: nsis
 
     steps:
       - name: Checkout repository

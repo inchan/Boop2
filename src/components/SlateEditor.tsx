@@ -8,7 +8,6 @@ import React, {
   forwardRef,
 } from 'react';
 import {
-  createEditor,
   Descendant,
   Editor,
   Transforms,
@@ -20,8 +19,8 @@ import {
   Node,
   BaseRange,
 } from 'slate';
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
-import { withHistory, HistoryEditor } from 'slate-history';
+import { Slate, Editable, ReactEditor } from 'slate-react';
+import { HistoryEditor } from 'slate-history';
 import './SlateEditor.css';
 
 // 들여쓰기 상수 (4 spaces)
@@ -38,7 +37,7 @@ type CustomText = {
   text: string;
 };
 
-type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
+export type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 
 declare module 'slate' {
   interface CustomTypes {
@@ -69,6 +68,7 @@ export interface SlateEditorHandle {
 }
 
 interface SlateEditorProps {
+  editor: CustomEditor; // 외부에서 에디터 인스턴스 주입 (탭별 독립 히스토리)
   initialValue?: string;
   onChange?: (value: string) => void;
   autoFocus?: boolean;
@@ -122,8 +122,8 @@ const getAbsoluteOffset = (editor: Editor, path: number[], offset: number): numb
 };
 
 const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
-  ({ initialValue = '', onChange, autoFocus = true, placeholder = '', findState }, ref) => {
-    const [editor] = useState(() => withReact(withHistory(createEditor())));
+  ({ editor, initialValue = '', onChange, autoFocus = true, placeholder = '', findState }, ref) => {
+    // editor는 외부에서 주입받음 (탭별 독립 히스토리 - FR-001, FR-002)
     const gutterRef = useRef<HTMLDivElement>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const isComposingRef = useRef(false);
@@ -391,6 +391,20 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
     // 키보드 이벤트 핸들러
     const handleKeyDown = useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
+        // Redo: Cmd/Ctrl + Shift + Z (브라우저가 기본 처리하지 않는 경우 대비)
+        if ((event.metaKey || event.ctrlKey) && event.key === 'z' && event.shiftKey) {
+          event.preventDefault();
+          HistoryEditor.redo(editor);
+          return;
+        }
+
+        // Undo: Cmd/Ctrl + Z (일관성을 위해 명시적 처리)
+        if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+          event.preventDefault();
+          HistoryEditor.undo(editor);
+          return;
+        }
+
         // Enter 키: 새 paragraph 생성
         if (event.key === 'Enter' && !event.shiftKey) {
           event.preventDefault();

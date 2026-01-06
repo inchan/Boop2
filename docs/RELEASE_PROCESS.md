@@ -10,6 +10,13 @@ Boop2 follows [Semantic Versioning (SemVer)](https://semver.org/):
 - **MINOR** version for functionality in a backwards compatible manner.
 - **PATCH** version for backwards compatible bug fixes.
 
+> **💡 Version Update Policy:**
+>
+> - **기본적으로 PATCH 버전**을 사용합니다 (버그 수정, 작은 개선).
+> - 사용자가 명시적으로 요청한 경우에만 **MINOR** (새 기능) 또는 **MAJOR** (호환되지 않는 변경)로 버전업합니다.
+> - 릴리즈 요청 시 버전을 명시하지 않으면 PATCH로 처리됩니다.
+> - 예: "릴리즈해주세요" → PATCH | "0.4.0으로 린리즈해주세요" → MINOR
+
 ## 2. Pre-release Checklist
 
 Before releasing, ensure you run these commands locally to prevent CI/CD failures:
