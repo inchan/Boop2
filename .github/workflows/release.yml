@@ -315,4 +315,5 @@ jobs:
           echo ""
           echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${TAG}"
           echo ""
-          gh release view "${TAG}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name'
+          # Use GITHUB_TOKEN env var (automatically set by GitHub Actions)
+          gh release view "${TAG}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' || true
