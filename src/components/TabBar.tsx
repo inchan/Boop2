@@ -1,14 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './TabBar.css';
-
-export interface Tab {
-  id: string;
-  title: string;
-  content: string;
-}
+import { Tab, TabGroup, DEFAULT_GROUP_ID } from '../lib/tabGroups';
 
 interface Props {
   tabs: Tab[];
+  groups: TabGroup[];
   activeTabId: string;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
@@ -19,10 +15,16 @@ interface Props {
   onToggleSettings: () => void;
   hasHistory: boolean;
   hasSessions: boolean;
+  // Group actions
+  onCreateGroup?: (title: string) => void;
+  onRenameGroup?: (groupId: string, title: string) => void;
+  onActivateGroup?: (groupId: string) => void;
+  moveTabToGroup?: (tabId: string, groupId: string) => void;
 }
 
 export function TabBar({
   tabs,
+  groups,
   activeTabId,
   onSelect,
   onClose,
@@ -33,27 +35,65 @@ export function TabBar({
   onToggleSettings,
   hasHistory,
   hasSessions,
+  onCreateGroup,
+  onRenameGroup,
+  onActivateGroup,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (editingId && inputRef.current) {
+    if ((editingId || editingGroupId) && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [editingId]);
+  }, [editingId, editingGroupId]);
 
-  const handleDoubleClick = (tab: Tab) => {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsGroupDropdownOpen(false);
+      }
+    };
+    if (isGroupDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isGroupDropdownOpen]);
+
+  // Determine active group
+  const activeGroupId = tabs.find((t) => t.id === activeTabId)?.groupId || DEFAULT_GROUP_ID;
+  const activeGroup = groups.find((g) => g.id === activeGroupId) || groups[0];
+
+  if (!activeGroup) {
+    console.error('[TabBar] No active group found!', { groups, activeGroupId });
+    return <div className="tab-bar-container">Loading groups...</div>;
+  }
+
+  const handleDoubleClickTab = (tab: Tab) => {
     setEditingId(tab.id);
+    setEditingGroupId(null);
     setTempTitle(tab.title);
+  };
+
+  const handleDoubleClickGroup = (group: TabGroup) => {
+    if (group.id === DEFAULT_GROUP_ID) return;
+    setEditingGroupId(group.id);
+    setEditingId(null);
+    setTempTitle(group.title);
   };
 
   const handleSave = () => {
     if (editingId) {
       onRename(editingId, tempTitle.trim() || 'Untitled');
       setEditingId(null);
+    } else if (editingGroupId && onRenameGroup) {
+      onRenameGroup(editingGroupId, tempTitle.trim() || 'Group');
+      setEditingGroupId(null);
     }
   };
 
@@ -62,18 +102,95 @@ export function TabBar({
       handleSave();
     } else if (e.key === 'Escape') {
       setEditingId(null);
+      setEditingGroupId(null);
     }
   };
 
+  // Render Group Selector (Dropdown Trigger)
+  const renderGroupSelector = () => {
+    return (
+      <div className="group-selector-container" ref={dropdownRef}>
+        <div
+          className="group-selector-btn"
+          onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+          title="Switch Group"
+        >
+          {editingGroupId === activeGroup.id ? (
+            <input
+              ref={inputRef}
+              className="group-edit-input"
+              value={tempTitle}
+              onChange={(e) => setTempTitle(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={handleKeyDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <>
+              <span
+                className="group-selector-name"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleDoubleClickGroup(activeGroup);
+                }}
+              >
+                {activeGroup.title}
+              </span>
+              <span className="group-selector-arrow">▼</span>
+            </>
+          )}
+        </div>
+
+        {isGroupDropdownOpen && (
+          <div className="group-dropdown-menu">
+            <div className="group-dropdown-header">GROUPS</div>
+            {groups.map((group) => (
+              <div
+                key={group.id}
+                className={`group-dropdown-item ${group.id === activeGroupId ? 'active' : ''}`}
+                onClick={() => {
+                  onActivateGroup?.(group.id);
+                  setIsGroupDropdownOpen(false);
+                }}
+              >
+                <span className="group-dot" style={{ backgroundColor: group.color }}></span>
+                <span className="group-name">{group.title}</span>
+                {group.id === activeGroupId && <span className="group-check">✓</span>}
+              </div>
+            ))}
+            <div className="group-dropdown-divider"></div>
+            <div
+              className="group-dropdown-item new-group"
+              onClick={() => {
+                onCreateGroup?.('New Group');
+                setIsGroupDropdownOpen(false);
+              }}
+            >
+              <span className="plus-icon">+</span>
+              <span>New Group</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Filter tabs for active group
+  const currentGroupTabs = tabs.filter((t) => t.groupId === activeGroupId);
+
   return (
     <div className="tab-bar-container" data-tauri-drag-region>
+      {/* Group Selector */}
+      {renderGroupSelector()}
+
       <div className="tabs-list" data-tauri-drag-region>
-        {tabs.map((tab) => (
+        {currentGroupTabs.map((tab) => (
           <div
             key={tab.id}
             className={`tab-item ${tab.id === activeTabId ? 'active' : ''}`}
             onClick={() => onSelect(tab.id)}
-            onDoubleClick={() => handleDoubleClick(tab)}
+            onDoubleClick={() => handleDoubleClickTab(tab)}
+            style={{ borderTop: `2px solid ${activeGroup.color}` }}
           >
             {editingId === tab.id ? (
               <input

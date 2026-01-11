@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Tab } from '../components/TabBar';
+import { Tab } from '../lib/tabGroups';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';

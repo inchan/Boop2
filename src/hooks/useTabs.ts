@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import debounce from 'lodash/debounce';
-import { Tab } from '../components/TabBar';
+import { Tab, DEFAULT_GROUP_ID } from '../lib/tabGroups';
 
 const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3';
 
@@ -23,7 +23,7 @@ export function useTabs(options: UseTabsOptions = {}) {
       return options.initialTabs;
     }
     const defaultId = generateId();
-    return [{ id: defaultId, title: 'Untitled', content: '' }];
+    return [{ id: defaultId, title: 'Untitled', content: '', groupId: DEFAULT_GROUP_ID }];
   });
 
   const [activeTabId, setActiveTabId] = useState(() => {
@@ -68,7 +68,10 @@ export function useTabs(options: UseTabsOptions = {}) {
 
   const addTab = useCallback(() => {
     const newId = generateId();
-    setTabs((prev) => [...prev, { id: newId, title: `Untitled ${prev.length + 1}`, content: '' }]);
+    setTabs((prev) => [
+      ...prev,
+      { id: newId, title: `Untitled ${prev.length + 1}`, content: '', groupId: DEFAULT_GROUP_ID },
+    ]);
     setActiveTabId(newId);
     return newId;
   }, []);
@@ -77,7 +80,7 @@ export function useTabs(options: UseTabsOptions = {}) {
     (id: string) => {
       if (tabs.length <= 1) {
         const newId = generateId();
-        setTabs([{ id: newId, title: 'Untitled', content: '' }]);
+        setTabs([{ id: newId, title: 'Untitled', content: '', groupId: DEFAULT_GROUP_ID }]);
         setActiveTabId(newId);
         return;
       }

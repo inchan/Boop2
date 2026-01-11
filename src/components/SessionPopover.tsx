@@ -1,10 +1,11 @@
 import './SessionPopover.css';
-import { Tab } from './TabBar';
+import { Tab, TabGroup } from '../lib/tabGroups';
 
 export interface Session {
   id: string;
   timestamp: number;
   tabs: Tab[];
+  groups?: TabGroup[]; // Optional for backward compatibility with v3 sessions
 }
 
 interface Props {
