@@ -36,6 +36,10 @@ function App() {
     closeTab,
     updateTabContent,
     renameTab,
+    duplicateTab,
+    closeOtherTabs,
+    closeTabsToRight,
+    closeTabsToLeft,
     restoreSession,
     createGroup,
     renameGroup,
@@ -410,6 +414,10 @@ function App() {
           onClose={handleCloseTab}
           onAdd={handleAddTab}
           onRename={renameTab}
+          onDuplicate={duplicateTab}
+          onCloseOthers={closeOtherTabs}
+          onCloseToRight={closeTabsToRight}
+          onCloseToLeft={closeTabsToLeft}
           onCreateGroup={createGroup}
           onRenameGroup={renameGroup}
           onActivateGroup={activateGroup}

@@ -16,6 +16,11 @@ interface Props {
   onToggleSettings: () => void;
   hasHistory: boolean;
   hasSessions: boolean;
+  // Tab context menu actions
+  onDuplicate?: (id: string) => void;
+  onCloseOthers?: (id: string) => void;
+  onCloseToRight?: (id: string) => void;
+  onCloseToLeft?: (id: string) => void;
   // Group actions
   onCreateGroup?: (title: string) => void;
   onRenameGroup?: (groupId: string, title: string) => void;
@@ -36,9 +41,14 @@ export function TabBar({
   onToggleSettings,
   hasHistory,
   hasSessions,
+  onDuplicate,
+  onCloseOthers,
+  onCloseToRight,
+  onCloseToLeft,
   onCreateGroup,
   onRenameGroup,
   onActivateGroup,
+  moveTabToGroup,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -131,50 +141,56 @@ export function TabBar({
     const hasTabsToLeft = tabIndex > 0;
     const hasOtherTabs = currentGroupTabs.length > 1;
 
+    // Build submenu for group move
+    const currentTab = tabs.find((t) => t.id === tabId);
+    const otherGroups = groups.filter((g) => g.id !== currentTab?.groupId);
+    const groupSubmenu: MenuItem[] = otherGroups.map((group) => ({
+      label: group.title,
+      onClick: () => {
+        moveTabToGroup?.(tabId, group.id);
+      },
+    }));
+
     return [
       {
         label: '탭 닫기',
         onClick: () => {
-          console.log('Close tab:', tabId);
           onClose(tabId);
         },
       },
       {
         label: '탭 복제',
         onClick: () => {
-          console.log('Duplicate tab:', tabId);
-          // TODO: Phase 2에서 구현
+          onDuplicate?.(tabId);
         },
       },
       { divider: true, label: '' },
       {
         label: '다른 탭 모두 닫기',
         onClick: () => {
-          console.log('Close other tabs');
-          // TODO: Phase 3에서 구현
+          onCloseOthers?.(tabId);
         },
         disabled: !hasOtherTabs,
       },
       {
         label: '오른쪽 탭 닫기',
         onClick: () => {
-          console.log('Close tabs to right');
-          // TODO: Phase 3에서 구현
+          onCloseToRight?.(tabId);
         },
         disabled: !hasTabsToRight,
       },
       {
         label: '왼쪽 탭 닫기',
         onClick: () => {
-          console.log('Close tabs to left');
-          // TODO: Phase 3에서 구현
+          onCloseToLeft?.(tabId);
         },
         disabled: !hasTabsToLeft,
       },
       { divider: true, label: '' },
       {
         label: '그룹으로 이동',
-        submenu: [], // TODO: Phase 4에서 구현
+        submenu: groupSubmenu.length > 0 ? groupSubmenu : undefined,
+        disabled: groupSubmenu.length === 0,
       },
     ];
   };

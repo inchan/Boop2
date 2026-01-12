@@ -182,6 +182,94 @@ export function useWorkspace() {
     }));
   }, []);
 
+  const duplicateTab = useCallback((id: string) => {
+    const newId = generateId();
+    setWorkspace((prev) => {
+      const sourceTab = prev.tabs.find((t) => t.id === id);
+      if (!sourceTab) return prev;
+
+      const newTab: Tab = {
+        id: newId,
+        title: `${sourceTab.title} (copy)`,
+        content: sourceTab.content,
+        groupId: sourceTab.groupId,
+      };
+
+      // Insert duplicated tab right after the source tab
+      const sourceIndex = prev.tabs.findIndex((t) => t.id === id);
+      const newTabs = [...prev.tabs];
+      newTabs.splice(sourceIndex + 1, 0, newTab);
+
+      return {
+        ...prev,
+        tabs: newTabs,
+        activeTabId: newId,
+      };
+    });
+    return newId;
+  }, []);
+
+  const closeOtherTabs = useCallback((keepTabId: string) => {
+    setWorkspace((prev) => {
+      const tabToKeep = prev.tabs.find((t) => t.id === keepTabId);
+      if (!tabToKeep) return prev;
+
+      return {
+        ...prev,
+        tabs: [tabToKeep],
+        activeTabId: keepTabId,
+      };
+    });
+  }, []);
+
+  const closeTabsToRight = useCallback((tabId: string) => {
+    setWorkspace((prev) => {
+      const tabIndex = prev.tabs.findIndex((t) => t.id === tabId);
+      if (tabIndex === -1) return prev;
+
+      // Only close tabs to the right within the same group
+      const tab = prev.tabs[tabIndex];
+      const groupTabs = prev.tabs.filter((t) => t.groupId === tab.groupId);
+      const groupIndex = groupTabs.findIndex((t) => t.id === tabId);
+
+      const tabsToKeepInGroup = groupTabs.slice(0, groupIndex + 1);
+      const tabsToKeepIds = new Set(tabsToKeepInGroup.map((t) => t.id));
+
+      // Keep all tabs not in this group, plus tabs to the left in this group
+      const newTabs = prev.tabs.filter((t) => t.groupId !== tab.groupId || tabsToKeepIds.has(t.id));
+
+      return {
+        ...prev,
+        tabs: newTabs,
+        activeTabId: prev.activeTabId,
+      };
+    });
+  }, []);
+
+  const closeTabsToLeft = useCallback((tabId: string) => {
+    setWorkspace((prev) => {
+      const tabIndex = prev.tabs.findIndex((t) => t.id === tabId);
+      if (tabIndex === -1) return prev;
+
+      // Only close tabs to the left within the same group
+      const tab = prev.tabs[tabIndex];
+      const groupTabs = prev.tabs.filter((t) => t.groupId === tab.groupId);
+      const groupIndex = groupTabs.findIndex((t) => t.id === tabId);
+
+      const tabsToKeepInGroup = groupTabs.slice(groupIndex);
+      const tabsToKeepIds = new Set(tabsToKeepInGroup.map((t) => t.id));
+
+      // Keep all tabs not in this group, plus tabs to the right in this group
+      const newTabs = prev.tabs.filter((t) => t.groupId !== tab.groupId || tabsToKeepIds.has(t.id));
+
+      return {
+        ...prev,
+        tabs: newTabs,
+        activeTabId: prev.activeTabId,
+      };
+    });
+  }, []);
+
   // --- Group Actions ---
 
   const handleCreateGroup = useCallback((title: string = 'New Group') => {
@@ -306,6 +394,10 @@ export function useWorkspace() {
     closeTab,
     updateTabContent,
     renameTab,
+    duplicateTab,
+    closeOtherTabs,
+    closeTabsToRight,
+    closeTabsToLeft,
     restoreSession, // Replaces restoreTabs
     // Group Actions
     createGroup: handleCreateGroup,
