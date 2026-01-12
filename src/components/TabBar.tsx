@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './TabBar.css';
 import { Tab, TabGroup, DEFAULT_GROUP_ID, GROUP_COLOR_PALETTE, GroupColor } from '../lib/tabGroups';
 import { ContextMenu, MenuItem } from './ContextMenu';
@@ -61,7 +61,13 @@ export function TabBar({
   const [tempTitle, setTempTitle] = useState('');
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
   const [colorPickerGroupId, setColorPickerGroupId] = useState<string | null>(null);
-  const [draggedGroupIndex, setDraggedGroupIndex] = useState<number | null>(null);
+  const [dragState, setDragState] = useState<{
+    dragging: boolean;
+    fromIndex: number | null;
+    overIndex: number | null;
+    mouseX: number;
+    mouseY: number;
+  }>({ dragging: false, fromIndex: null, overIndex: null, mouseX: 0, mouseY: 0 });
   const [contextMenu, setContextMenu] = useState<{
     tabId: string;
     position: { x: number; y: number };
@@ -69,8 +75,12 @@ export function TabBar({
   const [closingTabs, setClosingTabs] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDragRef = useRef<{ index: number; x: number; y: number } | null>(null);
+  const currentMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const CLOSE_ANIMATION_DURATION = 200; // ms
+  const LONG_PRESS_DURATION = 300; // ms
 
   useEffect(() => {
     if ((editingId || editingGroupId) && inputRef.current) {
@@ -81,6 +91,8 @@ export function TabBar({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close dropdown during drag operation
+      if (dragState.dragging) return;
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsGroupDropdownOpen(false);
       }
@@ -89,7 +101,74 @@ export function TabBar({
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isGroupDropdownOpen]);
+  }, [isGroupDropdownOpen, dragState.dragging]);
+
+  // Cancel long-press timer helper
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    pendingDragRef.current = null;
+  }, []);
+
+  // Handle mouse up globally to complete drag or cancel long-press
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Always track current mouse position for long-press activation
+      currentMouseRef.current = { x: e.clientX, y: e.clientY };
+
+      if (dragState.dragging) {
+        setDragState((prev) => ({ ...prev, mouseX: e.clientX, mouseY: e.clientY }));
+      } else if (pendingDragRef.current) {
+        // If mouse moves too much before long-press completes, cancel it
+        const dx = e.clientX - pendingDragRef.current.x;
+        const dy = e.clientY - pendingDragRef.current.y;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          cancelLongPress();
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      // Cancel pending long-press if any
+      cancelLongPress();
+
+      if (dragState.dragging) {
+        if (
+          dragState.fromIndex !== null &&
+          dragState.overIndex !== null &&
+          dragState.fromIndex !== dragState.overIndex &&
+          dragState.overIndex !== 0
+        ) {
+          onReorderGroups?.(dragState.fromIndex, dragState.overIndex);
+        }
+        setDragState({ dragging: false, fromIndex: null, overIndex: null, mouseX: 0, mouseY: 0 });
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [
+    dragState.dragging,
+    dragState.fromIndex,
+    dragState.overIndex,
+    onReorderGroups,
+    cancelLongPress,
+  ]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
 
   // Determine active group
   const activeGroupId = tabs.find((t) => t.id === activeTabId)?.groupId || DEFAULT_GROUP_ID;
@@ -276,89 +355,109 @@ export function TabBar({
         {isGroupDropdownOpen && (
           <div className="group-dropdown-menu">
             <div className="group-dropdown-header">GROUPS</div>
-            {groups.map((group, index) => (
-              <div
-                key={group.id}
-                className={`group-dropdown-item ${group.id === activeGroupId ? 'active' : ''} ${draggedGroupIndex !== null && draggedGroupIndex !== index ? 'drag-over' : ''}`}
-                draggable={group.id !== DEFAULT_GROUP_ID}
-                onDragStart={(e) => {
-                  if (group.id === DEFAULT_GROUP_ID) {
-                    e.preventDefault();
-                    return;
-                  }
-                  setDraggedGroupIndex(index);
-                  e.dataTransfer.effectAllowed = 'move';
-                }}
-                onDragEnd={() => {
-                  setDraggedGroupIndex(null);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedGroupIndex !== null && draggedGroupIndex !== index) {
-                    onReorderGroups?.(draggedGroupIndex, index);
-                  }
-                  setDraggedGroupIndex(null);
-                }}
-                onClick={() => {
-                  onActivateGroup?.(group.id);
-                  setIsGroupDropdownOpen(false);
-                  setColorPickerGroupId(null);
-                }}
-              >
-                <span
-                  className="group-dot clickable"
-                  style={{ backgroundColor: group.color }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setColorPickerGroupId(colorPickerGroupId === group.id ? null : group.id);
-                  }}
-                  title="Change color"
-                ></span>
-                <span className="group-name">{group.title}</span>
-                {group.id === activeGroupId && <span className="group-check">✓</span>}
+            {groups.map((group, index) => {
+              const isDragging = dragState.dragging && dragState.fromIndex === index;
+              const isDropTarget =
+                dragState.dragging &&
+                dragState.overIndex === index &&
+                dragState.fromIndex !== index &&
+                index !== 0;
 
-                {/* Delete button (not for default group) */}
-                {group.id !== DEFAULT_GROUP_ID && (
+              return (
+                <div
+                  key={group.id}
+                  className={`group-dropdown-item ${group.id === activeGroupId ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+                  onMouseDown={(e) => {
+                    // Only start long-press for non-default groups, left button only
+                    if (group.id === DEFAULT_GROUP_ID || e.button !== 0) return;
+                    e.preventDefault();
+
+                    // Store pending drag info and initialize current mouse position
+                    pendingDragRef.current = { index, x: e.clientX, y: e.clientY };
+                    currentMouseRef.current = { x: e.clientX, y: e.clientY };
+
+                    // Start long-press timer
+                    longPressTimerRef.current = setTimeout(() => {
+                      if (pendingDragRef.current) {
+                        // Use current mouse position for natural ghost placement
+                        setDragState({
+                          dragging: true,
+                          fromIndex: pendingDragRef.current.index,
+                          overIndex: pendingDragRef.current.index,
+                          mouseX: currentMouseRef.current.x,
+                          mouseY: currentMouseRef.current.y,
+                        });
+                        pendingDragRef.current = null;
+                      }
+                    }, LONG_PRESS_DURATION);
+                  }}
+                  onMouseEnter={() => {
+                    if (dragState.dragging && dragState.fromIndex !== index) {
+                      setDragState((prev) => ({ ...prev, overIndex: index }));
+                    }
+                  }}
+                  onClick={() => {
+                    if (!dragState.dragging) {
+                      onActivateGroup?.(group.id);
+                      setIsGroupDropdownOpen(false);
+                      setColorPickerGroupId(null);
+                    }
+                  }}
+                >
                   <span
-                    className="group-delete"
+                    className="group-dot clickable"
+                    style={{ backgroundColor: group.color }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteGroup?.(group.id);
+                      setColorPickerGroupId(colorPickerGroupId === group.id ? null : group.id);
                     }}
-                    title="Delete group"
-                  >
-                    ×
-                  </span>
-                )}
+                    title="Change color"
+                  ></span>
+                  <span className="group-name">{group.title}</span>
+                  {group.id === activeGroupId && <span className="group-check">✓</span>}
 
-                {/* Color Picker */}
-                {colorPickerGroupId === group.id && (
-                  <div className="color-picker" onClick={(e) => e.stopPropagation()}>
-                    {GROUP_COLOR_PALETTE.map((color) => (
-                      <span
-                        key={color}
-                        className={`color-option ${color === group.color ? 'selected' : ''}`}
-                        style={{ backgroundColor: color }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSetGroupColor?.(group.id, color);
-                          setColorPickerGroupId(null);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* Delete button (not for default group) */}
+                  {group.id !== DEFAULT_GROUP_ID && (
+                    <span
+                      className="group-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteGroup?.(group.id);
+                      }}
+                      title="Delete group"
+                    >
+                      ×
+                    </span>
+                  )}
+
+                  {/* Color Picker */}
+                  {colorPickerGroupId === group.id && (
+                    <div className="color-picker" onClick={(e) => e.stopPropagation()}>
+                      {GROUP_COLOR_PALETTE.map((color) => (
+                        <span
+                          key={color}
+                          className={`color-option ${color === group.color ? 'selected' : ''}`}
+                          style={{ backgroundColor: color }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSetGroupColor?.(group.id, color);
+                            setColorPickerGroupId(null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <div className="group-dropdown-divider"></div>
             <div
               className="group-dropdown-item new-group"
               onClick={() => {
-                onCreateGroup?.('New Group');
+                const newGroupId = onCreateGroup?.('New Group');
+                if (newGroupId) {
+                  onActivateGroup?.(newGroupId);
+                }
                 setIsGroupDropdownOpen(false);
               }}
             >

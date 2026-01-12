@@ -94,6 +94,7 @@
   font-size: 12px;
   color: var(--text-primary);
   transition: background 0.1s;
+  user-select: none;
 }
 
 .group-dropdown-item:hover {
@@ -105,17 +106,43 @@
   font-weight: 500;
 }
 
-.group-dropdown-item[draggable='true'] {
-  cursor: grab;
-}
-
-.group-dropdown-item[draggable='true']:active {
+.group-dropdown-item.dragging {
+  /* Lifted appearance - Apple HIG "Lift Effect" */
+  background: var(--bg-secondary);
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.25),
+    0 4px 6px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: scale(1.03) translateY(-2px);
+  border-radius: 6px;
+  z-index: 10;
+  position: relative;
   cursor: grabbing;
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out;
 }
 
-.group-dropdown-item.drag-over {
-  border-top: 2px solid var(--accent-color);
-  margin-top: -2px;
+.group-dropdown-item.drop-target {
+  /* Atlassian-style drop indicator - solid blue highlight */
+  background: rgba(24, 104, 219, 0.12);
+  border: 2px solid rgba(24, 104, 219, 0.5);
+  border-radius: 4px;
+  margin: -1px;
+  transition:
+    background 0.15s ease-out,
+    border-color 0.15s ease-out;
+}
+
+.group-dropdown-item.drop-target .group-dot,
+.group-dropdown-item.drop-target .group-name {
+  /* Keep content visible but slightly muted */
+  opacity: 0.85;
+}
+
+.group-dropdown-item.drop-target .group-check,
+.group-dropdown-item.drop-target .group-delete {
+  opacity: 0;
 }
 
 .group-dot {

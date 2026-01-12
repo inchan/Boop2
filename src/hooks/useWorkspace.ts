@@ -374,10 +374,13 @@ export function useWorkspace() {
   }, []);
 
   const handleReorderGroups = useCallback((fromIndex: number, toIndex: number) => {
-    setWorkspace((prev) => ({
-      ...prev,
-      groups: reorderGroups(prev.groups, fromIndex, toIndex),
-    }));
+    setWorkspace((prev) => {
+      const newGroups = reorderGroups(prev.groups, fromIndex, toIndex);
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
   }, []);
 
   // Session Restore Helper
