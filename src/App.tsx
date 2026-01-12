@@ -43,6 +43,7 @@ function App() {
     restoreSession,
     createGroup,
     renameGroup,
+    setGroupColor,
     moveTabToGroup,
     activateGroup,
   } = useWorkspace();
@@ -421,6 +422,7 @@ function App() {
           onCloseToLeft={closeTabsToLeft}
           onCreateGroup={createGroup}
           onRenameGroup={renameGroup}
+          onSetGroupColor={setGroupColor}
           onActivateGroup={activateGroup}
           moveTabToGroup={moveTabToGroup}
           onToggleClipboard={() => {

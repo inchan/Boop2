@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './TabBar.css';
-import { Tab, TabGroup, DEFAULT_GROUP_ID } from '../lib/tabGroups';
+import { Tab, TabGroup, DEFAULT_GROUP_ID, GROUP_COLOR_PALETTE, GroupColor } from '../lib/tabGroups';
 import { ContextMenu, MenuItem } from './ContextMenu';
 
 interface Props {
@@ -24,6 +24,7 @@ interface Props {
   // Group actions
   onCreateGroup?: (title: string) => void;
   onRenameGroup?: (groupId: string, title: string) => void;
+  onSetGroupColor?: (groupId: string, color: GroupColor) => void;
   onActivateGroup?: (groupId: string) => void;
   moveTabToGroup?: (tabId: string, groupId: string) => void;
 }
@@ -47,6 +48,7 @@ export function TabBar({
   onCloseToLeft,
   onCreateGroup,
   onRenameGroup,
+  onSetGroupColor,
   onActivateGroup,
   moveTabToGroup,
 }: Props) {
@@ -54,6 +56,7 @@ export function TabBar({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
+  const [colorPickerGroupId, setColorPickerGroupId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     tabId: string;
     position: { x: number; y: number };
@@ -274,11 +277,38 @@ export function TabBar({
                 onClick={() => {
                   onActivateGroup?.(group.id);
                   setIsGroupDropdownOpen(false);
+                  setColorPickerGroupId(null);
                 }}
               >
-                <span className="group-dot" style={{ backgroundColor: group.color }}></span>
+                <span
+                  className="group-dot clickable"
+                  style={{ backgroundColor: group.color }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setColorPickerGroupId(colorPickerGroupId === group.id ? null : group.id);
+                  }}
+                  title="Change color"
+                ></span>
                 <span className="group-name">{group.title}</span>
                 {group.id === activeGroupId && <span className="group-check">✓</span>}
+
+                {/* Color Picker */}
+                {colorPickerGroupId === group.id && (
+                  <div className="color-picker" onClick={(e) => e.stopPropagation()}>
+                    {GROUP_COLOR_PALETTE.map((color) => (
+                      <span
+                        key={color}
+                        className={`color-option ${color === group.color ? 'selected' : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSetGroupColor?.(group.id, color);
+                          setColorPickerGroupId(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             <div className="group-dropdown-divider"></div>
