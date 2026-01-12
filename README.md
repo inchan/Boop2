@@ -24,6 +24,8 @@ For users who just want the pre-built app:
 
 ## 🚀 Features
 - **Multi-Tab Interface:** Work on multiple documents at once. (`Cmd + T`, `Cmd + W`, `Cmd + 1~9`)
+- **Tab Groups:** Organize tabs into color-coded groups with easy switching.
+- **Tab Context Menu:** Right-click tabs for quick actions (duplicate, close others, move to group).
 - **Background Workers:** UI never freezes during heavy text processing.
 - **Intelligent Session History:** 
     - Automatically archives your work internally (stores up to 50 sessions).

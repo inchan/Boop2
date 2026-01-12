@@ -15,6 +15,22 @@ Boop2 allows you to work on multiple documents simultaneously.
 - **Switch Tabs:** `Cmd + 1` through `9`.
 - **Rename Tab:** Double-click the tab title to edit.
 
+### Tab Context Menu
+Right-click on any tab to access quick actions:
+- **탭 닫기:** Close the current tab.
+- **탭 복제:** Duplicate the tab with its content.
+- **다른 탭 모두 닫기:** Close all tabs except the selected one.
+- **오른쪽/왼쪽 탭 닫기:** Close tabs to the right or left.
+- **그룹으로 이동:** Move the tab to a different group.
+
+### Tab Groups
+Organize your tabs into groups for better workspace management:
+- **Group Selector:** Click the group dropdown (left side of tab bar) to switch between groups.
+- **New Group:** Create a new group from the dropdown menu.
+- **Rename Group:** Double-click the group name to edit.
+- **Group Color:** Click the color dot in the dropdown to change the group's color.
+- **Move to Group:** Right-click a tab and select "그룹으로 이동" to move it.
+
 ## 📋 Clipboard History
 Every time you paste text (`Cmd + V`), Boop2 records it in its internal history.
 - **Access:** Click the **Clipboard icon** at the top right of the tab bar.

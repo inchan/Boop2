@@ -219,7 +219,7 @@
 .tab-item {
   display: flex;
   align-items: center;
-  height: 28px; /* Slightly shorter to show top border clearly */
+  height: 28px;
   padding: 0 12px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
@@ -237,7 +237,6 @@
     max-width 0.2s ease-out,
     min-width 0.2s ease-out,
     padding 0.2s ease-out;
-  /* Top border is set via inline style for dynamic group color */
 }
 
 /* Tab closing animation */
@@ -258,9 +257,9 @@
 .tab-item.active {
   background: var(--bg-primary);
   color: var(--text-primary);
+  font-weight: 600;
   height: 32px;
   border-bottom: none;
-  /* Active tab blends with editor */
 }
 
 .tab-title {

@@ -340,7 +340,6 @@ export function TabBar({
       <div className="tabs-list" data-tauri-drag-region>
         {currentGroupTabs.map((tab) => {
           const isClosing = closingTabs.has(tab.id);
-          const tabGroup = groups.find((g) => g.id === tab.groupId) || activeGroup;
           return (
             <div
               key={tab.id}
@@ -348,7 +347,6 @@ export function TabBar({
               onClick={() => onSelect(tab.id)}
               onDoubleClick={() => handleDoubleClickTab(tab)}
               onContextMenu={(e) => handleContextMenu(e, tab.id)}
-              style={{ borderTop: `2px solid ${tabGroup.color}` }}
             >
               {editingId === tab.id ? (
                 <input
