@@ -247,3 +247,16 @@ export function findTabToActivateInGroup(tabs: Tab[], groupId: string): string |
   const groupTabs = tabs.filter((t) => t.groupId === groupId);
   return groupTabs.length > 0 ? groupTabs[0].id : undefined;
 }
+
+export function reorderGroups(groups: TabGroup[], fromIndex: number, toIndex: number): TabGroup[] {
+  // Don't allow moving default group (index 0)
+  if (fromIndex === 0 || toIndex === 0) return groups;
+  if (fromIndex === toIndex) return groups;
+  if (fromIndex < 0 || fromIndex >= groups.length) return groups;
+  if (toIndex < 0 || toIndex >= groups.length) return groups;
+
+  const next = [...groups];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
+}

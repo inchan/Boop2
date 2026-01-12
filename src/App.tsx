@@ -44,8 +44,10 @@ function App() {
     createGroup,
     renameGroup,
     setGroupColor,
+    deleteGroup,
     moveTabToGroup,
     activateGroup,
+    reorderGroups,
   } = useWorkspace();
 
   const [clipboardHistory, setClipboardHistory] = useState<string[]>([]);
@@ -424,6 +426,8 @@ function App() {
           onRenameGroup={renameGroup}
           onSetGroupColor={setGroupColor}
           onActivateGroup={activateGroup}
+          onDeleteGroup={deleteGroup}
+          onReorderGroups={reorderGroups}
           moveTabToGroup={moveTabToGroup}
           onToggleClipboard={() => {
             setIsClipboardOpen(!isClipboardOpen);

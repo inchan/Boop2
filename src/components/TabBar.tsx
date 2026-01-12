@@ -26,6 +26,8 @@ interface Props {
   onRenameGroup?: (groupId: string, title: string) => void;
   onSetGroupColor?: (groupId: string, color: GroupColor) => void;
   onActivateGroup?: (groupId: string) => void;
+  onDeleteGroup?: (groupId: string) => void;
+  onReorderGroups?: (fromIndex: number, toIndex: number) => void;
   moveTabToGroup?: (tabId: string, groupId: string) => void;
 }
 
@@ -50,6 +52,8 @@ export function TabBar({
   onRenameGroup,
   onSetGroupColor,
   onActivateGroup,
+  onDeleteGroup,
+  onReorderGroups,
   moveTabToGroup,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +61,7 @@ export function TabBar({
   const [tempTitle, setTempTitle] = useState('');
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
   const [colorPickerGroupId, setColorPickerGroupId] = useState<string | null>(null);
+  const [draggedGroupIndex, setDraggedGroupIndex] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     tabId: string;
     position: { x: number; y: number };
@@ -190,11 +195,11 @@ export function TabBar({
 
     return [
       {
-        label: '탭 닫기',
-        onClick: () => {
-          onClose(tabId);
-        },
+        label: '그룹으로 이동',
+        submenu: groupSubmenu.length > 0 ? groupSubmenu : undefined,
+        disabled: groupSubmenu.length === 0,
       },
+      { divider: true, label: '' },
       {
         label: '탭 복제',
         onClick: () => {
@@ -203,7 +208,13 @@ export function TabBar({
       },
       { divider: true, label: '' },
       {
-        label: '다른 탭 모두 닫기',
+        label: '탭 닫기',
+        onClick: () => {
+          onClose(tabId);
+        },
+      },
+      {
+        label: '다른 탭 닫기',
         onClick: () => {
           handleAnimatedCloseOthers(tabId);
         },
@@ -222,12 +233,6 @@ export function TabBar({
           handleAnimatedCloseToLeft(tabId);
         },
         disabled: !hasTabsToLeft,
-      },
-      { divider: true, label: '' },
-      {
-        label: '그룹으로 이동',
-        submenu: groupSubmenu.length > 0 ? groupSubmenu : undefined,
-        disabled: groupSubmenu.length === 0,
       },
     ];
   };
@@ -271,10 +276,33 @@ export function TabBar({
         {isGroupDropdownOpen && (
           <div className="group-dropdown-menu">
             <div className="group-dropdown-header">GROUPS</div>
-            {groups.map((group) => (
+            {groups.map((group, index) => (
               <div
                 key={group.id}
-                className={`group-dropdown-item ${group.id === activeGroupId ? 'active' : ''}`}
+                className={`group-dropdown-item ${group.id === activeGroupId ? 'active' : ''} ${draggedGroupIndex !== null && draggedGroupIndex !== index ? 'drag-over' : ''}`}
+                draggable={group.id !== DEFAULT_GROUP_ID}
+                onDragStart={(e) => {
+                  if (group.id === DEFAULT_GROUP_ID) {
+                    e.preventDefault();
+                    return;
+                  }
+                  setDraggedGroupIndex(index);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => {
+                  setDraggedGroupIndex(null);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedGroupIndex !== null && draggedGroupIndex !== index) {
+                    onReorderGroups?.(draggedGroupIndex, index);
+                  }
+                  setDraggedGroupIndex(null);
+                }}
                 onClick={() => {
                   onActivateGroup?.(group.id);
                   setIsGroupDropdownOpen(false);
@@ -292,6 +320,20 @@ export function TabBar({
                 ></span>
                 <span className="group-name">{group.title}</span>
                 {group.id === activeGroupId && <span className="group-check">✓</span>}
+
+                {/* Delete button (not for default group) */}
+                {group.id !== DEFAULT_GROUP_ID && (
+                  <span
+                    className="group-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteGroup?.(group.id);
+                    }}
+                    title="Delete group"
+                  >
+                    ×
+                  </span>
+                )}
 
                 {/* Color Picker */}
                 {colorPickerGroupId === group.id && (

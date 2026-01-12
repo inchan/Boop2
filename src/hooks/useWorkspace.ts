@@ -12,6 +12,7 @@ import {
   deleteGroup,
   moveTabToGroup,
   findTabToActivateInGroup,
+  reorderGroups,
   GroupColor,
 } from '../lib/tabGroups';
 
@@ -322,10 +323,30 @@ export function useWorkspace() {
   }, []);
 
   const handleMoveTabToGroup = useCallback((tabId: string, groupId: string) => {
-    setWorkspace((prev) => ({
-      ...prev,
-      tabs: moveTabToGroup(prev.tabs, tabId, groupId),
-    }));
+    setWorkspace((prev) => {
+      const movingTab = prev.tabs.find((t) => t.id === tabId);
+      const currentGroupId = movingTab?.groupId;
+      const newTabs = moveTabToGroup(prev.tabs, tabId, groupId);
+
+      // If moving the active tab, stay in current group by activating another tab
+      if (prev.activeTabId === tabId && currentGroupId) {
+        const remainingInGroup = newTabs.filter(
+          (t) => t.groupId === currentGroupId && t.id !== tabId
+        );
+        if (remainingInGroup.length > 0) {
+          return {
+            ...prev,
+            tabs: newTabs,
+            activeTabId: remainingInGroup[0].id,
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        tabs: newTabs,
+      };
+    });
   }, []);
 
   const handleActivateGroup = useCallback((groupId: string) => {
@@ -350,6 +371,13 @@ export function useWorkspace() {
         activeTabId: newId,
       };
     });
+  }, []);
+
+  const handleReorderGroups = useCallback((fromIndex: number, toIndex: number) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      groups: reorderGroups(prev.groups, fromIndex, toIndex),
+    }));
   }, []);
 
   // Session Restore Helper
@@ -407,5 +435,6 @@ export function useWorkspace() {
     deleteGroup: handleDeleteGroup,
     moveTabToGroup: handleMoveTabToGroup,
     activateGroup: handleActivateGroup,
+    reorderGroups: handleReorderGroups,
   };
 }
