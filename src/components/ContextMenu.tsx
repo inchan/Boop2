@@ -19,6 +19,7 @@ interface ContextMenuProps {
 export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [activeSubmenuIndex, setActiveSubmenuIndex] = useState<number | null>(null);
 
   // Get actionable items (non-divider items)
   const actionableItems = items
@@ -126,6 +127,12 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
     onClose();
   };
 
+  const handleSubmenuItemClick = (subItem: MenuItem) => {
+    if (subItem.disabled) return;
+    subItem.onClick?.();
+    onClose();
+  };
+
   // Find which actionable index corresponds to the current item index
   const getActionableIndex = (itemIndex: number): number => {
     return actionableItems.findIndex(({ index }) => index === itemIndex);
@@ -146,19 +153,53 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
 
         const actionableIndex = getActionableIndex(index);
         const isFocused = actionableIndex === focusedIndex;
+        const hasSubmenu = item.submenu && item.submenu.length > 0;
+        const isSubmenuOpen = activeSubmenuIndex === index;
 
         return (
           <div
             key={index}
-            className={`context-menu-item ${item.disabled ? 'disabled' : ''} ${item.submenu ? 'has-submenu' : ''} ${isFocused ? 'focused' : ''}`}
+            className={`context-menu-item ${item.disabled ? 'disabled' : ''} ${hasSubmenu ? 'has-submenu' : ''} ${isFocused ? 'focused' : ''}`}
             onClick={() => handleItemClick(item)}
-            onMouseEnter={() => setFocusedIndex(actionableIndex)}
+            onMouseEnter={() => {
+              setFocusedIndex(actionableIndex);
+              if (hasSubmenu) {
+                setActiveSubmenuIndex(index);
+              } else {
+                setActiveSubmenuIndex(null);
+              }
+            }}
+            onMouseLeave={() => {
+              // Don't close submenu on mouse leave - let it close when hovering other items
+            }}
             role="menuitem"
             aria-disabled={item.disabled}
+            aria-haspopup={hasSubmenu ? 'menu' : undefined}
+            aria-expanded={isSubmenuOpen ? 'true' : undefined}
             tabIndex={-1}
           >
             <span className="context-menu-label">{item.label}</span>
-            {item.submenu && <span className="context-menu-arrow">▶</span>}
+            {hasSubmenu && <span className="context-menu-arrow">▶</span>}
+
+            {/* Submenu */}
+            {hasSubmenu && isSubmenuOpen && (
+              <div className="context-submenu" role="menu">
+                {item.submenu!.map((subItem, subIndex) => (
+                  <div
+                    key={subIndex}
+                    className={`context-menu-item ${subItem.disabled ? 'disabled' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSubmenuItemClick(subItem);
+                    }}
+                    role="menuitem"
+                    aria-disabled={subItem.disabled}
+                  >
+                    <span className="context-menu-label">{subItem.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

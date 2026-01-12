@@ -178,8 +178,9 @@ function App() {
   });
 
   const handleAddTab = useCallback(() => {
-    addTab(DEFAULT_GROUP_ID);
-  }, [addTab]);
+    // 현재 활성 탭의 그룹에 새 탭 생성
+    addTab(activeTab?.groupId || DEFAULT_GROUP_ID);
+  }, [addTab, activeTab?.groupId]);
 
   const handleCloseTab = useCallback(
     (id: string) => {
