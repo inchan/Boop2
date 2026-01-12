@@ -58,8 +58,11 @@ export function TabBar({
     tabId: string;
     position: { x: number; y: number };
   } | null>(null);
+  const [closingTabs, setClosingTabs] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const CLOSE_ANIMATION_DURATION = 200; // ms
 
   useEffect(() => {
     if ((editingId || editingGroupId) && inputRef.current) {
@@ -121,6 +124,37 @@ export function TabBar({
     }
   };
 
+  // Animated close helpers
+  const animateAndClose = (tabIds: string[], closeCallback: () => void) => {
+    if (tabIds.length === 0) return;
+
+    // Mark tabs as closing (triggers CSS animation)
+    setClosingTabs(new Set(tabIds));
+
+    // After animation, actually close the tabs
+    setTimeout(() => {
+      setClosingTabs(new Set());
+      closeCallback();
+    }, CLOSE_ANIMATION_DURATION);
+  };
+
+  const handleAnimatedCloseToRight = (tabId: string) => {
+    const tabIndex = currentGroupTabs.findIndex((t) => t.id === tabId);
+    const tabsToClose = currentGroupTabs.slice(tabIndex + 1).map((t) => t.id);
+    animateAndClose(tabsToClose, () => onCloseToRight?.(tabId));
+  };
+
+  const handleAnimatedCloseToLeft = (tabId: string) => {
+    const tabIndex = currentGroupTabs.findIndex((t) => t.id === tabId);
+    const tabsToClose = currentGroupTabs.slice(0, tabIndex).map((t) => t.id);
+    animateAndClose(tabsToClose, () => onCloseToLeft?.(tabId));
+  };
+
+  const handleAnimatedCloseOthers = (tabId: string) => {
+    const tabsToClose = currentGroupTabs.filter((t) => t.id !== tabId).map((t) => t.id);
+    animateAndClose(tabsToClose, () => onCloseOthers?.(tabId));
+  };
+
   // Context menu handlers
   const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
     e.preventDefault();
@@ -168,21 +202,21 @@ export function TabBar({
       {
         label: '다른 탭 모두 닫기',
         onClick: () => {
-          onCloseOthers?.(tabId);
+          handleAnimatedCloseOthers(tabId);
         },
         disabled: !hasOtherTabs,
       },
       {
         label: '오른쪽 탭 닫기',
         onClick: () => {
-          onCloseToRight?.(tabId);
+          handleAnimatedCloseToRight(tabId);
         },
         disabled: !hasTabsToRight,
       },
       {
         label: '왼쪽 탭 닫기',
         onClick: () => {
-          onCloseToLeft?.(tabId);
+          handleAnimatedCloseToLeft(tabId);
         },
         disabled: !hasTabsToLeft,
       },
@@ -273,39 +307,42 @@ export function TabBar({
       {renderGroupSelector()}
 
       <div className="tabs-list" data-tauri-drag-region>
-        {currentGroupTabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`tab-item ${tab.id === activeTabId ? 'active' : ''}`}
-            onClick={() => onSelect(tab.id)}
-            onDoubleClick={() => handleDoubleClickTab(tab)}
-            onContextMenu={(e) => handleContextMenu(e, tab.id)}
-            style={{ borderTop: `2px solid ${activeGroup.color}` }}
-          >
-            {editingId === tab.id ? (
-              <input
-                ref={inputRef}
-                className="tab-edit-input"
-                value={tempTitle}
-                onChange={(e) => setTempTitle(e.target.value)}
-                onBlur={handleSave}
-                onKeyDown={handleKeyDown}
-              />
-            ) : (
-              <span className="tab-title">{tab.title}</span>
-            )}
-
-            <span
-              className="tab-close"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(tab.id);
-              }}
+        {currentGroupTabs.map((tab) => {
+          const isClosing = closingTabs.has(tab.id);
+          return (
+            <div
+              key={tab.id}
+              className={`tab-item ${tab.id === activeTabId ? 'active' : ''} ${isClosing ? 'closing' : ''}`}
+              onClick={() => onSelect(tab.id)}
+              onDoubleClick={() => handleDoubleClickTab(tab)}
+              onContextMenu={(e) => handleContextMenu(e, tab.id)}
+              style={{ borderTop: `2px solid ${activeGroup.color}` }}
             >
-              ×
-            </span>
-          </div>
-        ))}
+              {editingId === tab.id ? (
+                <input
+                  ref={inputRef}
+                  className="tab-edit-input"
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onBlur={handleSave}
+                  onKeyDown={handleKeyDown}
+                />
+              ) : (
+                <span className="tab-title">{tab.title}</span>
+              )}
+
+              <span
+                className="tab-close"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose(tab.id);
+                }}
+              >
+                ×
+              </span>
+            </div>
+          );
+        })}
         <div className="add-tab-btn" onClick={onAdd} title="New Tab (Cmd+T)">
           +
         </div>

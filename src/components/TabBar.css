@@ -176,8 +176,23 @@
   flex-shrink: 0;
   transition:
     background 0.2s,
-    color 0.2s;
+    color 0.2s,
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out,
+    max-width 0.2s ease-out,
+    min-width 0.2s ease-out,
+    padding 0.2s ease-out;
   /* Top border is set via inline style for dynamic group color */
+}
+
+/* Tab closing animation */
+.tab-item.closing {
+  opacity: 0;
+  transform: scaleX(0.8) translateY(-4px);
+  max-width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .tab-item:hover {
