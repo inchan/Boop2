@@ -1,0 +1,10 @@
+{
+  "workflow": {
+    "mode": "yolo",
+    "depth": "standard"
+  },
+  "project": {
+    "name": "Boop2 - Tab Context Menu",
+    "initialized": "2025-01-12"
+  }
+}
