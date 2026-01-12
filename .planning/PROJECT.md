@@ -16,16 +16,17 @@
 - ✓ Tab groups with colors - existing (`src/lib/tabGroups.ts`)
 - ✓ Tab management via useWorkspace hook - existing (`src/hooks/useWorkspace.ts`)
 - ✓ TabBar component - existing (`src/components/TabBar.tsx`)
+- ✓ 탭 우클릭 시 컨텍스트 메뉴 표시
+- ✓ 다른 그룹으로 탭 이동 (서브메뉴로 그룹 목록 표시)
+- ✓ 탭 복제 기능
+- ✓ 탭 닫기
+- ✓ 다른 탭 모두 닫기
+- ✓ 오른쪽 탭 모두 닫기
+- ✓ 왼쪽 탭 모두 닫기
 
 ### Active
 
-- [ ] 탭 우클릭 시 컨텍스트 메뉴 표시
-- [ ] 다른 그룹으로 탭 이동 (서브메뉴로 그룹 목록 표시)
-- [ ] 탭 복제 기능
-- [ ] 탭 닫기
-- [ ] 다른 탭 모두 닫기
-- [ ] 오른쪽 탭 모두 닫기
-- [ ] 왼쪽 탭 모두 닫기
+(None - All requirements implemented)
 
 ### Out of Scope
 
@@ -37,7 +38,8 @@
 
 **기존 코드베이스:**
 - `src/components/TabBar.tsx` - 탭바 UI 컴포넌트
-- `src/hooks/useWorkspace.ts` - 탭/그룹 상태 관리 (320줄)
+- `src/components/ContextMenu.tsx` - 컨텍스트 메뉴 컴포넌트 (NEW)
+- `src/hooks/useWorkspace.ts` - 탭/그룹 상태 관리 (420줄)
 - `src/lib/tabGroups.ts` - Tab, TabGroup, WorkspaceSnapshot 도메인 모델
 
 **기술 스택:**
@@ -51,16 +53,17 @@
 
 ## Constraints
 
-- **순수 React**: 외부 컨텍스트 메뉴 라이브러리 없이 구현
-- **기존 패턴 유지**: useWorkspace 훅 확장, 기존 CSS 패턴 사용
-- **접근성**: 키보드 네비게이션 지원 (화살표 키, Enter, Escape)
+- **순수 React**: 외부 컨텍스트 메뉴 라이브러리 없이 구현 ✓
+- **기존 패턴 유지**: useWorkspace 훅 확장, 기존 CSS 패턴 사용 ✓
+- **접근성**: 키보드 네비게이션 지원 (화살표 키, Enter, Escape) ✓
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 순수 React 구현 | 의존성 최소화, 기존 스타일 일관성 | — Pending |
-| 서브메뉴로 그룹 선택 | 그룹이 여러 개일 때 UX 개선 | — Pending |
+| 순수 React 구현 | 의존성 최소화, 기존 스타일 일관성 | ✓ Implemented |
+| createPortal 사용 | z-index/overflow 문제 방지 | ✓ Implemented |
+| 그룹 내 탭 닫기 | 오른쪽/왼쪽 탭 닫기는 현재 그룹 내에서만 동작 | ✓ Implemented |
 
 ---
-*Last updated: 2025-01-12 after initialization*
+*Last updated: 2025-01-12 after feature completion*

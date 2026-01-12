@@ -20,7 +20,8 @@
   transition: background 0.1s;
 }
 
-.context-menu-item:hover:not(.disabled) {
+.context-menu-item:hover:not(.disabled),
+.context-menu-item.focused:not(.disabled) {
   background: var(--bg-tertiary);
 }
 

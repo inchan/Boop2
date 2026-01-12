@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './ContextMenu.css';
 
@@ -18,6 +18,12 @@ interface ContextMenuProps {
 
 export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  // Get actionable items (non-divider items)
+  const actionableItems = items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => !item.divider);
 
   // Calculate adjusted position to keep menu within viewport
   const getAdjustedPosition = useCallback(() => {
@@ -49,7 +55,7 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
     return { x, y };
   }, [position]);
 
-  // Handle click outside
+  // Handle keyboard navigation and click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -58,8 +64,37 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
+      switch (event.key) {
+        case 'Escape':
+          event.preventDefault();
+          onClose();
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          setFocusedIndex((prev) => {
+            const nextIndex = prev + 1;
+            if (nextIndex >= actionableItems.length) return 0;
+            return nextIndex;
+          });
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setFocusedIndex((prev) => {
+            const nextIndex = prev - 1;
+            if (nextIndex < 0) return actionableItems.length - 1;
+            return nextIndex;
+          });
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < actionableItems.length) {
+            const { item } = actionableItems[focusedIndex];
+            if (!item.disabled && !item.submenu) {
+              item.onClick?.();
+              onClose();
+            }
+          }
+          break;
       }
     };
 
@@ -74,7 +109,7 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, focusedIndex, actionableItems]);
 
   // Adjust position after mount
   useEffect(() => {
@@ -91,18 +126,36 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
     onClose();
   };
 
+  // Find which actionable index corresponds to the current item index
+  const getActionableIndex = (itemIndex: number): number => {
+    return actionableItems.findIndex(({ index }) => index === itemIndex);
+  };
+
   const menuContent = (
-    <div ref={menuRef} className="context-menu" style={{ left: position.x, top: position.y }}>
+    <div
+      ref={menuRef}
+      className="context-menu"
+      style={{ left: position.x, top: position.y }}
+      role="menu"
+      aria-label="Context menu"
+    >
       {items.map((item, index) => {
         if (item.divider) {
-          return <div key={index} className="context-menu-divider" />;
+          return <div key={index} className="context-menu-divider" role="separator" />;
         }
+
+        const actionableIndex = getActionableIndex(index);
+        const isFocused = actionableIndex === focusedIndex;
 
         return (
           <div
             key={index}
-            className={`context-menu-item ${item.disabled ? 'disabled' : ''} ${item.submenu ? 'has-submenu' : ''}`}
+            className={`context-menu-item ${item.disabled ? 'disabled' : ''} ${item.submenu ? 'has-submenu' : ''} ${isFocused ? 'focused' : ''}`}
             onClick={() => handleItemClick(item)}
+            onMouseEnter={() => setFocusedIndex(actionableIndex)}
+            role="menuitem"
+            aria-disabled={item.disabled}
+            tabIndex={-1}
           >
             <span className="context-menu-label">{item.label}</span>
             {item.submenu && <span className="context-menu-arrow">▶</span>}
