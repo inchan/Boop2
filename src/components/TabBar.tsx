@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './TabBar.css';
 import { Tab, TabGroup, DEFAULT_GROUP_ID } from '../lib/tabGroups';
+import { ContextMenu, MenuItem } from './ContextMenu';
 
 interface Props {
   tabs: Tab[];
@@ -43,6 +44,10 @@ export function TabBar({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    tabId: string;
+    position: { x: number; y: number };
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +109,74 @@ export function TabBar({
       setEditingId(null);
       setEditingGroupId(null);
     }
+  };
+
+  // Context menu handlers
+  const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
+    setContextMenu({
+      tabId,
+      position: { x: e.clientX, y: e.clientY },
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  // Build context menu items
+  const getContextMenuItems = (tabId: string): MenuItem[] => {
+    const tabIndex = currentGroupTabs.findIndex((t) => t.id === tabId);
+    const hasTabsToRight = tabIndex < currentGroupTabs.length - 1;
+    const hasTabsToLeft = tabIndex > 0;
+    const hasOtherTabs = currentGroupTabs.length > 1;
+
+    return [
+      {
+        label: '탭 닫기',
+        onClick: () => {
+          console.log('Close tab:', tabId);
+          onClose(tabId);
+        },
+      },
+      {
+        label: '탭 복제',
+        onClick: () => {
+          console.log('Duplicate tab:', tabId);
+          // TODO: Phase 2에서 구현
+        },
+      },
+      { divider: true, label: '' },
+      {
+        label: '다른 탭 모두 닫기',
+        onClick: () => {
+          console.log('Close other tabs');
+          // TODO: Phase 3에서 구현
+        },
+        disabled: !hasOtherTabs,
+      },
+      {
+        label: '오른쪽 탭 닫기',
+        onClick: () => {
+          console.log('Close tabs to right');
+          // TODO: Phase 3에서 구현
+        },
+        disabled: !hasTabsToRight,
+      },
+      {
+        label: '왼쪽 탭 닫기',
+        onClick: () => {
+          console.log('Close tabs to left');
+          // TODO: Phase 3에서 구현
+        },
+        disabled: !hasTabsToLeft,
+      },
+      { divider: true, label: '' },
+      {
+        label: '그룹으로 이동',
+        submenu: [], // TODO: Phase 4에서 구현
+      },
+    ];
   };
 
   // Render Group Selector (Dropdown Trigger)
@@ -190,6 +263,7 @@ export function TabBar({
             className={`tab-item ${tab.id === activeTabId ? 'active' : ''}`}
             onClick={() => onSelect(tab.id)}
             onDoubleClick={() => handleDoubleClickTab(tab)}
+            onContextMenu={(e) => handleContextMenu(e, tab.id)}
             style={{ borderTop: `2px solid ${activeGroup.color}` }}
           >
             {editingId === tab.id ? (
@@ -283,6 +357,15 @@ export function TabBar({
           </svg>
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          items={getContextMenuItems(contextMenu.tabId)}
+          position={contextMenu.position}
+          onClose={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 }
