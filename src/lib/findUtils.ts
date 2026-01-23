@@ -26,7 +26,7 @@ export interface SearchResult {
 export function findMatches(
   text: string,
   query: string,
-  options?: { caseSensitive?: boolean; maxResults?: number }
+  options?: { caseSensitive?: boolean; wholeWord?: boolean; maxResults?: number }
 ): SearchResult {
   const startTime = performance.now();
 
@@ -35,26 +35,50 @@ export function findMatches(
   }
 
   const caseSensitive = options?.caseSensitive ?? false;
+  const wholeWord = options?.wholeWord ?? false;
   const maxResults = options?.maxResults ?? Infinity;
 
   const matches: SearchMatch[] = [];
-  const searchText = caseSensitive ? text : text.toLowerCase();
-  const searchQuery = caseSensitive ? query : query.toLowerCase();
 
-  let pos = searchText.indexOf(searchQuery);
-  let matchId = 0;
+  // Use regex for whole word matching, simple indexOf otherwise
+  if (wholeWord) {
+    // Escape special regex characters in query
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const flags = caseSensitive ? 'g' : 'gi';
+    const regex = new RegExp(`\\b${escapedQuery}\\b`, flags);
 
-  while (pos !== -1 && matches.length < maxResults) {
-    const lineNumber = text.substring(0, pos).split('\n').length - 1;
+    let match;
+    let matchId = 0;
 
-    matches.push({
-      id: `match-${matchId++}`,
-      start: pos,
-      end: pos + query.length,
-      line: lineNumber,
-    });
+    while ((match = regex.exec(text)) !== null && matches.length < maxResults) {
+      const lineNumber = text.substring(0, match.index).split('\n').length - 1;
 
-    pos = searchText.indexOf(searchQuery, pos + 1);
+      matches.push({
+        id: `match-${matchId++}`,
+        start: match.index,
+        end: match.index + query.length,
+        line: lineNumber,
+      });
+    }
+  } else {
+    const searchText = caseSensitive ? text : text.toLowerCase();
+    const searchQuery = caseSensitive ? query : query.toLowerCase();
+
+    let pos = searchText.indexOf(searchQuery);
+    let matchId = 0;
+
+    while (pos !== -1 && matches.length < maxResults) {
+      const lineNumber = text.substring(0, pos).split('\n').length - 1;
+
+      matches.push({
+        id: `match-${matchId++}`,
+        start: pos,
+        end: pos + query.length,
+        line: lineNumber,
+      });
+
+      pos = searchText.indexOf(searchQuery, pos + 1);
+    }
   }
 
   const durationMs = performance.now() - startTime;

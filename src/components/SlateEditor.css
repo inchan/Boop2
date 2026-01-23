@@ -24,7 +24,7 @@
   background-color: var(--editor-bg, var(--bg-primary));
   color: var(--text-secondary);
   text-align: right;
-  padding: 10px 0;
+  padding: 8px 0; /* Match editor padding */
   user-select: none;
   -webkit-user-select: none;
   min-width: 40px;
@@ -45,7 +45,7 @@
 /* Main Editor Area */
 .slate-editor {
   flex: 1;
-  padding: 2px 8px;
+  padding: 8px 8px; /* Match gutter padding */
   background-color: var(--editor-bg, var(--bg-primary));
   color: var(--text-primary);
   caret-color: var(--text-primary);

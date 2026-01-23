@@ -184,10 +184,13 @@ const SlateEditor = forwardRef<SlateEditorHandle, SlateEditorProps>(
       if (findState?.searchTerm && findState.matches.length > 0 && findState.activeIndex >= 0) {
         const activeMatch = findState.matches[findState.activeIndex];
         if (activeMatch && activeMatch.line < editor.children.length) {
-          const lineElement = editorContainerRef.current?.querySelector(
-            `.slate-paragraph:nth-of-type(${activeMatch.line + 1})`
-          );
-          lineElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Use requestAnimationFrame to ensure DOM is updated before scrolling
+          requestAnimationFrame(() => {
+            const lineElement = editorContainerRef.current?.querySelector(
+              `.slate-paragraph:nth-of-type(${activeMatch.line + 1})`
+            );
+            lineElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
         }
       }
     }, [findState?.activeIndex, findState?.matches, findState?.searchTerm, editor.children.length]);

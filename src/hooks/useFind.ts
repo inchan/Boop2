@@ -13,32 +13,61 @@ export function useFind(options: UseFindOptions): UseFindReturn {
     replaceTerm: '',
     matches: [],
     activeIndex: -1,
-    isComposing: false,
+    caseSensitive: false,
+    wholeWord: false,
   });
 
-  const isComposingRef = useRef(false);
+  // Use ref to always have latest documentText for replace operations
+  const documentTextRef = useRef(documentText);
+  useEffect(() => {
+    documentTextRef.current = documentText;
+  }, [documentText]);
+
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const performSearch = useCallback(
-    (term: string) => {
-      if (term.trim() === '') {
-        setFindState((prev) => ({
-          ...prev,
-          matches: [],
-          activeIndex: -1,
-        }));
-        return;
-      }
-
-      const result = findMatches(documentText, term);
+  const performSearch = useCallback((term: string, caseSensitive: boolean, wholeWord: boolean) => {
+    if (term.trim() === '') {
       setFindState((prev) => ({
         ...prev,
-        matches: result.matches,
-        activeIndex: result.matches.length > 0 ? 0 : -1,
+        matches: [],
+        activeIndex: -1,
       }));
-    },
-    [documentText]
-  );
+      return;
+    }
+
+    const result = findMatches(documentTextRef.current, term, {
+      caseSensitive,
+      wholeWord,
+    });
+    setFindState((prev) => ({
+      ...prev,
+      matches: result.matches,
+      activeIndex: result.matches.length > 0 ? 0 : -1,
+    }));
+  }, []);
+
+  // Re-search when documentText changes (after replace) - using ref to avoid cascading renders
+  const prevDocumentTextRef = useRef(documentText);
+  useEffect(() => {
+    if (prevDocumentTextRef.current !== documentText && findState.searchTerm.trim() !== '') {
+      prevDocumentTextRef.current = documentText;
+      // Schedule state update for next tick to avoid cascading render
+      const timeoutId = setTimeout(() => {
+        const result = findMatches(documentText, findState.searchTerm, {
+          caseSensitive: findState.caseSensitive,
+          wholeWord: findState.wholeWord,
+        });
+        setFindState((prev) => ({
+          ...prev,
+          matches: result.matches,
+          activeIndex:
+            result.matches.length > 0 ? Math.min(prev.activeIndex, result.matches.length - 1) : -1,
+        }));
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+    prevDocumentTextRef.current = documentText;
+  }, [documentText, findState.searchTerm, findState.caseSensitive, findState.wholeWord]);
 
   const openFind = useCallback(() => {
     setFindState((prev) => ({ ...prev, isOpen: true }));
@@ -70,16 +99,15 @@ export function useFind(options: UseFindOptions): UseFindReturn {
     (term: string) => {
       setFindState((prev) => ({ ...prev, searchTerm: term }));
 
-      if (isComposingRef.current) {
-        return;
-      }
-
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
 
       searchTimeoutRef.current = setTimeout(() => {
-        performSearch(term);
+        setFindState((current) => {
+          performSearch(term, current.caseSensitive, current.wholeWord);
+          return current;
+        });
       }, DEBOUNCE_MS);
     },
     [performSearch]
@@ -87,6 +115,46 @@ export function useFind(options: UseFindOptions): UseFindReturn {
 
   const setReplaceTerm = useCallback((term: string) => {
     setFindState((prev) => ({ ...prev, replaceTerm: term }));
+  }, []);
+
+  const toggleCaseSensitive = useCallback(() => {
+    setFindState((prev) => {
+      const newCaseSensitive = !prev.caseSensitive;
+      // Trigger re-search with new option
+      if (prev.searchTerm.trim() !== '') {
+        const result = findMatches(documentTextRef.current, prev.searchTerm, {
+          caseSensitive: newCaseSensitive,
+          wholeWord: prev.wholeWord,
+        });
+        return {
+          ...prev,
+          caseSensitive: newCaseSensitive,
+          matches: result.matches,
+          activeIndex: result.matches.length > 0 ? 0 : -1,
+        };
+      }
+      return { ...prev, caseSensitive: newCaseSensitive };
+    });
+  }, []);
+
+  const toggleWholeWord = useCallback(() => {
+    setFindState((prev) => {
+      const newWholeWord = !prev.wholeWord;
+      // Trigger re-search with new option
+      if (prev.searchTerm.trim() !== '') {
+        const result = findMatches(documentTextRef.current, prev.searchTerm, {
+          caseSensitive: prev.caseSensitive,
+          wholeWord: newWholeWord,
+        });
+        return {
+          ...prev,
+          wholeWord: newWholeWord,
+          matches: result.matches,
+          activeIndex: result.matches.length > 0 ? 0 : -1,
+        };
+      }
+      return { ...prev, wholeWord: newWholeWord };
+    });
   }, []);
 
   const goToNext = useCallback(() => {
@@ -115,44 +183,34 @@ export function useFind(options: UseFindOptions): UseFindReturn {
   }, []);
 
   const replaceCurrent = useCallback(() => {
+    // Use current state snapshot for replace operation
+    const currentText = documentTextRef.current;
+
     setFindState((prev) => {
       if (prev.matches.length === 0 || prev.activeIndex < 0) return prev;
 
       const activeMatch = prev.matches[prev.activeIndex];
-      const before = documentText.slice(0, activeMatch.start);
-      const after = documentText.slice(activeMatch.end);
+      const before = currentText.slice(0, activeMatch.start);
+      const after = currentText.slice(activeMatch.end);
 
       const replacedText = before + prev.replaceTerm + after;
-      const result = findMatches(replacedText, prev.searchTerm);
-
-      let newActiveIndex = prev.activeIndex;
-      if (result.matches.length > 0) {
-        const replacedLengthDiff = prev.replaceTerm.length - (activeMatch.end - activeMatch.start);
-        if (replacedLengthDiff !== 0) {
-          for (let i = prev.activeIndex + 1; i < result.matches.length; i++) {
-            result.matches[i].start += replacedLengthDiff;
-            result.matches[i].end += replacedLengthDiff;
-          }
-        }
-        newActiveIndex = (prev.activeIndex + 1) % result.matches.length;
-      }
 
       // Call onReplace callback to update editor
       onReplace?.(replacedText);
 
-      return {
-        ...prev,
-        matches: result.matches,
-        activeIndex: result.matches.length > 0 ? newActiveIndex : -1,
-      };
+      // Return state unchanged - the useEffect will re-search with new documentText
+      return prev;
     });
-  }, [documentText, onReplace]);
+  }, [onReplace]);
 
   const replaceAll = useCallback(() => {
+    const currentText = documentTextRef.current;
+
     setFindState((prev) => {
       if (prev.matches.length === 0) return prev;
 
-      let replacedText = documentText;
+      let replacedText = currentText;
+      // Sort matches in reverse order to prevent offset issues
       const matches = [...prev.matches].sort((a, b) => b.start - a.start);
 
       for (const match of matches) {
@@ -161,18 +219,13 @@ export function useFind(options: UseFindOptions): UseFindReturn {
         replacedText = before + prev.replaceTerm + after;
       }
 
-      const result = findMatches(replacedText, prev.searchTerm);
-
       // Call onReplace callback to update editor
       onReplace?.(replacedText);
 
-      return {
-        ...prev,
-        matches: result.matches,
-        activeIndex: result.matches.length > 0 ? 0 : -1,
-      };
+      // Return state unchanged - the useEffect will re-search with new documentText
+      return prev;
     });
-  }, [documentText, onReplace]);
+  }, [onReplace]);
 
   useEffect(() => {
     return () => {
@@ -194,5 +247,7 @@ export function useFind(options: UseFindOptions): UseFindReturn {
     clearSearch,
     replaceCurrent,
     replaceAll,
+    toggleCaseSensitive,
+    toggleWholeWord,
   };
 }

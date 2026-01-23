@@ -13,7 +13,8 @@ export interface FindState {
   replaceTerm: string;
   matches: SearchMatch[];
   activeIndex: number;
-  isComposing: boolean;
+  caseSensitive: boolean;
+  wholeWord: boolean;
 }
 
 export interface FindPanelProps {
@@ -49,4 +50,6 @@ export interface UseFindReturn {
   clearSearch: () => void;
   replaceCurrent: () => void;
   replaceAll: () => void;
+  toggleCaseSensitive: () => void;
+  toggleWholeWord: () => void;
 }

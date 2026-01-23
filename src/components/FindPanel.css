@@ -1,41 +1,53 @@
-.find-bar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: transparent;
-  z-index: 1000;
-  pointer-events: none;
+/*
+ * FindPanel Spacing System (4px base unit)
+ * - 2px: micro spacing (button gaps)
+ * - 4px: small spacing (inner padding, small gaps)
+ * - 8px: medium spacing (container padding, standard gaps)
+ * - 12px: large spacing (section padding)
+ */
+
+/* Inline find bar container (VS Code style) */
+.find-bar-container {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.2s ease-out,
+    opacity 0.15s ease-out;
+  background: var(--bg-primary);
+  border-bottom: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.find-bar-container.open {
+  max-height: 200px;
+  opacity: 1;
+  border-bottom-color: var(--border-color);
 }
 
 .find-bar {
   width: 100%;
-  max-width: 600px;
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
+  overflow: visible;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  pointer-events: auto;
-  margin: 8px auto;
+  padding: 2px 0;
 }
 
 .find-bar-row {
   display: flex;
   align-items: center;
-  padding: 6px 10px;
-  gap: 6px;
+  padding: 4px 12px; /* vertical: small, horizontal: large (matches TabBar) */
+  gap: 8px; /* medium spacing between elements */
 }
 
 .find-bar-row + .find-bar-row {
   border-top: 1px solid var(--border-color);
+  margin-top: 2px; /* spacing above the divider */
+  padding-top: 4px; /* spacing below the divider */
 }
 
 .find-replace-row {
-  padding-top: 6px;
-  background: var(--bg-secondary);
+  /* Inherits spacing from .find-bar-row + .find-bar-row */
 }
 
 .find-icon {
@@ -44,11 +56,12 @@
   justify-content: center;
   color: var(--text-secondary);
   flex-shrink: 0;
+  width: 16px;
 }
 
 .find-input {
   flex: 1;
-  padding: 6px 8px;
+  padding: 4px 8px; /* small vertical, medium horizontal */
   font-size: 13px;
   background: var(--bg-secondary);
   border: 1px solid transparent;
@@ -72,7 +85,7 @@
   color: var(--text-secondary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  padding: 0 4px;
+  padding: 0 4px; /* small horizontal padding */
 }
 
 .find-match-count.no-results {
@@ -83,7 +96,7 @@
 .find-replace-btns {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 2px; /* micro spacing for button groups */
 }
 
 .find-nav-btn,
@@ -93,7 +106,9 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -126,7 +141,7 @@
   border: none;
   color: var(--text-primary);
   cursor: pointer;
-  padding: 4px 10px;
+  padding: 4px 12px; /* small vertical, large horizontal */
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
@@ -143,8 +158,44 @@
   cursor: not-allowed;
 }
 
+/* Search option toggle buttons */
+.find-option-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px; /* micro spacing */
+  margin-left: 4px; /* small spacing from input */
+}
+
+.find-option-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px; /* small vertical, medium horizontal */
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  min-width: 28px;
+  height: 28px;
+}
+
+.find-option-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.find-option-btn.active {
+  background: var(--bg-tertiary);
+  border-color: #007aff;
+  color: #007aff;
+}
+
 .find-bar-footer {
-  padding: 4px 10px;
+  padding: 4px 12px; /* small vertical, large horizontal (matches row) */
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
 }
@@ -157,8 +208,8 @@
 
 .find-shortcuts kbd {
   background: var(--bg-tertiary);
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 2px 4px; /* micro vertical, small horizontal */
+  border-radius: 4px;
   font-family: inherit;
   font-size: 10px;
 }

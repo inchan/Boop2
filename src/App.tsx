@@ -174,6 +174,8 @@ function App() {
     goToPrevious,
     replaceCurrent,
     replaceAll,
+    toggleCaseSensitive,
+    toggleWholeWord,
   } = useFind({
     documentText: activeTab?.content || '',
     initialOpen: false,
@@ -242,6 +244,12 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape: Close find panel if open
+      if (e.key === 'Escape' && findState.isOpen) {
+        e.preventDefault();
+        closeFind();
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
@@ -249,6 +257,16 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
         e.preventDefault();
         toggleFind();
+      }
+      // Cmd+G: Next match (VS Code style)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        goToNext();
+      }
+      // Cmd+Shift+G: Previous match
+      if ((e.metaKey || e.ctrlKey) && e.key === 'g' && e.shiftKey) {
+        e.preventDefault();
+        goToPrevious();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'h' && e.shiftKey) {
         e.preventDefault();
@@ -279,7 +297,11 @@ function App() {
     handleCloseTab,
     workspace.tabs,
     scripts,
+    findState.isOpen,
+    closeFind,
     toggleFind,
+    goToNext,
+    goToPrevious,
     replaceCurrent,
     replaceAll,
     setActiveTabId,
@@ -366,21 +388,6 @@ function App() {
         scripts={scripts}
         onSelect={runSelectedScript}
       />
-      {/* ... FindPanel, Popovers ... */}
-      <FindPanel
-        isOpen={findState.isOpen}
-        onClose={closeFind}
-        onSearch={setSearchTerm}
-        onReplace={setReplaceTerm}
-        onNext={goToNext}
-        onPrevious={goToPrevious}
-        onReplaceCurrent={replaceCurrent}
-        onReplaceAll={replaceAll}
-        matchCount={findState.matches.length}
-        activeIndex={findState.activeIndex}
-        hasNoMatches={findState.searchTerm !== '' && findState.matches.length === 0}
-        replaceTerm={findState.replaceTerm}
-      />
       {isClipboardOpen && settings.enableClipboardHistory && (
         <ClipboardPopover
           history={clipboardHistory}
@@ -448,6 +455,26 @@ function App() {
           hasSessions={settings.enableSessionRestore && sessions.length > 0}
         />
       </ErrorBoundary>
+
+      {/* FindPanel - inline below TabBar (VS Code style) */}
+      <FindPanel
+        isOpen={findState.isOpen}
+        onClose={closeFind}
+        onSearch={setSearchTerm}
+        onReplace={setReplaceTerm}
+        onNext={goToNext}
+        onPrevious={goToPrevious}
+        onReplaceCurrent={replaceCurrent}
+        onReplaceAll={replaceAll}
+        matchCount={findState.matches.length}
+        activeIndex={findState.activeIndex}
+        hasNoMatches={findState.searchTerm !== '' && findState.matches.length === 0}
+        replaceTerm={findState.replaceTerm}
+        caseSensitive={findState.caseSensitive}
+        wholeWord={findState.wholeWord}
+        onToggleCaseSensitive={toggleCaseSensitive}
+        onToggleWholeWord={toggleWholeWord}
+      />
 
       <ErrorBoundary>
         <SlateEditor

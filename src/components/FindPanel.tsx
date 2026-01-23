@@ -2,6 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { FindPanelProps } from '../types/find';
 import './FindPanel.css';
 
+interface ExtendedFindPanelProps extends FindPanelProps {
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  onToggleCaseSensitive?: () => void;
+  onToggleWholeWord?: () => void;
+}
+
 export function FindPanel({
   isOpen,
   onClose,
@@ -15,7 +22,11 @@ export function FindPanel({
   activeIndex,
   hasNoMatches,
   replaceTerm,
-}: FindPanelProps) {
+  caseSensitive = false,
+  wholeWord = false,
+  onToggleCaseSensitive,
+  onToggleWholeWord,
+}: ExtendedFindPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [localReplaceTerm, setLocalReplaceTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -89,13 +100,13 @@ export function FindPanel({
   const matchDisplay =
     matchCount === 0 ? (hasNoMatches ? 'No results' : '') : `${activeIndex + 1} of ${matchCount}`;
 
-  if (!isOpen) return null;
+  const containerClass = `find-bar-container ${isOpen ? 'open' : ''}`;
 
   return (
-    <div className="find-bar-overlay" onMouseDown={onClose}>
-      <div className="find-bar" onMouseDown={(e) => e.stopPropagation()}>
+    <div className={containerClass} role="search" aria-label="Find and replace">
+      <div className="find-bar">
         <div className="find-bar-row">
-          <div className="find-icon">
+          <div className="find-icon" aria-hidden="true">
             <svg
               width="16"
               height="16"
@@ -117,10 +128,40 @@ export function FindPanel({
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
+            aria-label="Search text"
+            aria-describedby={hasNoMatches ? 'find-no-results' : undefined}
           />
 
+          {/* Search option toggles */}
+          <div className="find-option-btns">
+            <button
+              type="button"
+              className={`find-option-btn ${caseSensitive ? 'active' : ''}`}
+              onClick={onToggleCaseSensitive}
+              title="Match Case (Aa)"
+              aria-pressed={caseSensitive}
+              aria-label="Match case"
+            >
+              Aa
+            </button>
+            <button
+              type="button"
+              className={`find-option-btn ${wholeWord ? 'active' : ''}`}
+              onClick={onToggleWholeWord}
+              title="Match Whole Word (\\b)"
+              aria-pressed={wholeWord}
+              aria-label="Match whole word"
+            >
+              ab
+            </button>
+          </div>
+
           {searchTerm && (
-            <span className={`find-match-count ${hasNoMatches && searchTerm ? 'no-results' : ''}`}>
+            <span
+              id={hasNoMatches ? 'find-no-results' : undefined}
+              className={`find-match-count ${hasNoMatches && searchTerm ? 'no-results' : ''}`}
+              aria-live="polite"
+            >
               {matchDisplay}
             </span>
           )}
@@ -132,6 +173,7 @@ export function FindPanel({
               onClick={onPrevious}
               title="Previous (Shift+Enter)"
               disabled={matchCount === 0}
+              aria-label="Previous match"
             >
               <svg
                 width="14"
@@ -148,8 +190,9 @@ export function FindPanel({
               type="button"
               className="find-nav-btn"
               onClick={onNext}
-              title="Next (Enter)"
+              title="Next (Enter / Cmd+G)"
               disabled={matchCount === 0}
+              aria-label="Next match"
             >
               <svg
                 width="14"
@@ -168,7 +211,9 @@ export function FindPanel({
             type="button"
             className={`find-expand-btn ${isExpanded ? 'expanded' : ''}`}
             onClick={() => setIsExpanded(!isExpanded)}
-            title="Expand"
+            title="Toggle Replace"
+            aria-expanded={isExpanded}
+            aria-label="Toggle replace options"
           >
             <svg
               width="14"
@@ -182,7 +227,13 @@ export function FindPanel({
             </svg>
           </button>
 
-          <button type="button" className="find-close-btn" onClick={onClose} title="Close (Esc)">
+          <button
+            type="button"
+            className="find-close-btn"
+            onClick={onClose}
+            title="Close (Esc)"
+            aria-label="Close find panel"
+          >
             <svg
               width="14"
               height="14"
@@ -198,7 +249,7 @@ export function FindPanel({
 
         {isExpanded && (
           <div className="find-bar-row find-replace-row">
-            <div className="find-icon replace-icon">
+            <div className="find-icon replace-icon" aria-hidden="true">
               <svg
                 width="16"
                 height="16"
@@ -218,6 +269,7 @@ export function FindPanel({
               value={localReplaceTerm}
               onChange={handleReplaceChange}
               onKeyDown={handleKeyDown}
+              aria-label="Replace text"
             />
 
             <div className="find-replace-btns">
@@ -226,6 +278,7 @@ export function FindPanel({
                 className="find-replace-btn"
                 onClick={onReplaceCurrent}
                 disabled={matchCount === 0}
+                aria-label="Replace current match"
               >
                 Replace
               </button>
@@ -234,6 +287,7 @@ export function FindPanel({
                 className="find-replace-btn"
                 onClick={onReplaceAll}
                 disabled={matchCount === 0}
+                aria-label="Replace all matches"
               >
                 All
               </button>
@@ -244,7 +298,7 @@ export function FindPanel({
         {searchTerm && matchCount > 0 && !isExpanded && (
           <div className="find-bar-footer">
             <span className="find-shortcuts">
-              <kbd>Enter</kbd> Next • <kbd>Shift+Enter</kbd> Previous • <kbd>Cmd+→</kbd> Replace
+              <kbd>Enter</kbd> Next • <kbd>Shift+Enter</kbd> Previous • <kbd>Cmd+G</kbd> Next
             </span>
           </div>
         )}
