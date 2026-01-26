@@ -135,14 +135,19 @@ export function useWorkspace() {
 
   const closeTab = useCallback((id: string) => {
     setWorkspace((prev) => {
+      const closingTab = prev.tabs.find((t) => t.id === id);
+      if (!closingTab) return prev;
+
+      const closingGroupId = closingTab.groupId;
+
       if (prev.tabs.length <= 1) {
-        // Don't allow closing last tab, reset content instead
+        // Global last tab: app requires at least one tab, so create new empty tab
         const newId = generateId();
         const resetTab: Tab = {
           id: newId,
           title: 'Untitled',
           content: '',
-          groupId: DEFAULT_GROUP_ID,
+          groupId: closingGroupId, // Stay in the same group
         };
         return {
           ...prev,
@@ -155,10 +160,29 @@ export function useWorkspace() {
       let newActiveId = prev.activeTabId;
 
       if (prev.activeTabId === id) {
-        // Select nearest tab
-        const index = prev.tabs.findIndex((t) => t.id === id);
-        const nextTab = newTabs[index] || newTabs[index - 1] || newTabs[0];
-        newActiveId = nextTab.id;
+        // Select nearest tab WITHIN THE SAME GROUP
+        const sameGroupTabs = prev.tabs.filter((t) => t.groupId === closingGroupId);
+        const indexInGroup = sameGroupTabs.findIndex((t) => t.id === id);
+        const remainingInGroup = sameGroupTabs.filter((t) => t.id !== id);
+
+        if (remainingInGroup.length > 0) {
+          // Pick next or previous tab in same group
+          const nextTab =
+            remainingInGroup[indexInGroup] ||
+            remainingInGroup[indexInGroup - 1] ||
+            remainingInGroup[0];
+          newActiveId = nextTab.id;
+        } else {
+          // Group's last tab: clear content but keep tab to preserve group structure
+          const clearedTabs = prev.tabs.map((t) =>
+            t.id === id ? { ...t, title: 'Untitled', content: '' } : t
+          );
+          return {
+            ...prev,
+            tabs: clearedTabs,
+            activeTabId: id,
+          };
+        }
       }
 
       return {
