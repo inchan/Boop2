@@ -129,4 +129,7 @@ jobs:
         run: npm run build
 
       - name: Build Tauri app (test only)
+        env:
+          # Skip updater signing for PR builds (no access to secrets)
+          TAURI_SIGNING_PRIVATE_KEY: ''
         run: npm run tauri build -- --bundles ${{ matrix.bundles }}
