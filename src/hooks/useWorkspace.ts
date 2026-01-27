@@ -10,9 +10,12 @@ import {
   setGroupColor,
   renameGroup,
   deleteGroup,
+  duplicateGroup,
   moveTabToGroup,
   findTabToActivateInGroup,
   reorderGroups,
+  setGroupBackgroundColor,
+  setGroupFontColor,
   GroupColor,
 } from '../lib/tabGroups';
 
@@ -407,6 +410,36 @@ export function useWorkspace() {
     });
   }, []);
 
+  const handleSetGroupBackgroundColor = useCallback(
+    (groupId: string, backgroundColor: string | undefined) => {
+      setWorkspace((prev) => ({
+        ...prev,
+        groups: setGroupBackgroundColor(prev.groups, groupId, backgroundColor),
+      }));
+    },
+    []
+  );
+
+  const handleSetGroupFontColor = useCallback((groupId: string, fontColor: string | undefined) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      groups: setGroupFontColor(prev.groups, groupId, fontColor),
+    }));
+  }, []);
+
+  const handleDuplicateGroup = useCallback((groupId: string) => {
+    const newGroupId = generateId();
+    setWorkspace((prev) => {
+      const { groups, tabs } = duplicateGroup(prev.groups, prev.tabs, groupId, newGroupId);
+      return {
+        ...prev,
+        groups,
+        tabs,
+      };
+    });
+    return newGroupId;
+  }, []);
+
   // Session Restore Helper
   const restoreSession = useCallback((newTabs: Tab[], selectFirst = true) => {
     // Session restore usually provides just tabs. We need to normalize it into the workspace.
@@ -458,7 +491,10 @@ export function useWorkspace() {
     createGroup: handleCreateGroup,
     toggleGroup: handleToggleGroup,
     setGroupColor: handleSetGroupColor,
+    setGroupBackgroundColor: handleSetGroupBackgroundColor,
+    setGroupFontColor: handleSetGroupFontColor,
     renameGroup: handleRenameGroup,
+    duplicateGroup: handleDuplicateGroup,
     deleteGroup: handleDeleteGroup,
     moveTabToGroup: handleMoveTabToGroup,
     activateGroup: handleActivateGroup,

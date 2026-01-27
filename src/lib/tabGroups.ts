@@ -25,6 +25,33 @@ export const GROUP_COLOR_PALETTE: GroupColor[] = [
   '#64748b',
 ];
 
+export const PRESET_COLORS = [
+  '#ffffff',
+  '#f0f0f0',
+  '#d0d0d0',
+  '#a0a0a0',
+  '#808080',
+  '#404040',
+  '#202020',
+  '#000000',
+  '#ff0000',
+  '#ff8800',
+  '#ffff00',
+  '#00ff00',
+  '#00ffff',
+  '#0088ff',
+  '#8800ff',
+  '#ff00ff',
+  '#ffcccc',
+  '#ffe6cc',
+  '#ffffcc',
+  '#ccffcc',
+  '#ccffff',
+  '#cce6ff',
+  '#e6ccff',
+  '#ffccff',
+];
+
 export interface Tab {
   id: string;
   title: string;
@@ -36,6 +63,8 @@ export interface TabGroup {
   id: string;
   title: string;
   color: GroupColor;
+  backgroundColor?: string;
+  fontColor?: string;
   collapsed: boolean;
 }
 
@@ -93,10 +122,16 @@ function normalizeGroup(value: unknown, fallbackIndex: number): TabGroup {
   const title =
     typeof value.title === 'string' && value.title.trim() ? value.title.trim() : 'Group';
   const collapsed = typeof value.collapsed === 'boolean' ? value.collapsed : false;
+  const backgroundColor =
+    typeof value.backgroundColor === 'string' ? value.backgroundColor : undefined;
+  const fontColor = typeof value.fontColor === 'string' ? value.fontColor : undefined;
+
   return {
     id: value.id,
     title,
     color: normalizeColor(value.color),
+    backgroundColor,
+    fontColor,
     collapsed,
   };
 }
@@ -259,4 +294,58 @@ export function reorderGroups(groups: TabGroup[], fromIndex: number, toIndex: nu
   const [item] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, item);
   return next;
+}
+
+export function setGroupBackgroundColor(
+  groups: TabGroup[],
+  groupId: string,
+  backgroundColor: string | undefined
+): TabGroup[] {
+  return groups.map((g) => (g.id === groupId ? { ...g, backgroundColor } : g));
+}
+
+export function setGroupFontColor(
+  groups: TabGroup[],
+  groupId: string,
+  fontColor: string | undefined
+): TabGroup[] {
+  return groups.map((g) => (g.id === groupId ? { ...g, fontColor } : g));
+}
+
+export function duplicateGroup(
+  groups: TabGroup[],
+  tabs: Tab[],
+  groupId: string,
+  newGroupId: string
+): { groups: TabGroup[]; tabs: Tab[] } {
+  const sourceGroup = groups.find((g) => g.id === groupId);
+  if (!sourceGroup) {
+    return { groups, tabs };
+  }
+
+  // 그룹 복제
+  const newGroup: TabGroup = {
+    ...sourceGroup,
+    id: newGroupId,
+    title: `${sourceGroup.title} (copy)`,
+  };
+
+  // 해당 그룹의 탭들 복제
+  const groupTabs = tabs.filter((t) => t.groupId === groupId);
+  const newTabs = groupTabs.map((tab) => ({
+    ...tab,
+    id: `${tab.id}-copy-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    title: `${tab.title} (copy)`,
+    groupId: newGroupId,
+  }));
+
+  // 원본 그룹 바로 다음에 복제된 그룹 삽입
+  const sourceIndex = groups.findIndex((g) => g.id === groupId);
+  const newGroups = [...groups];
+  newGroups.splice(sourceIndex + 1, 0, newGroup);
+
+  return {
+    groups: newGroups,
+    tabs: [...tabs, ...newTabs],
+  };
 }

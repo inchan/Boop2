@@ -44,6 +44,9 @@ function App() {
     createGroup,
     renameGroup,
     setGroupColor,
+    setGroupBackgroundColor,
+    setGroupFontColor,
+    duplicateGroup,
     deleteGroup,
     moveTabToGroup,
     activateGroup,
@@ -167,7 +170,7 @@ function App() {
   const {
     findState,
     closeFind,
-    toggleFind,
+    openFind,
     setSearchTerm,
     setReplaceTerm,
     goToNext,
@@ -256,7 +259,7 @@ function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
         e.preventDefault();
-        toggleFind();
+        openFind();
       }
       // Cmd+G: Next match (VS Code style)
       if ((e.metaKey || e.ctrlKey) && e.key === 'g' && !e.shiftKey) {
@@ -299,7 +302,7 @@ function App() {
     scripts,
     findState.isOpen,
     closeFind,
-    toggleFind,
+    openFind,
     goToNext,
     goToPrevious,
     replaceCurrent,
@@ -421,6 +424,7 @@ function App() {
           tabs={workspace.tabs}
           groups={workspace.groups}
           activeTabId={activeTabId}
+          groupLayoutMode={settings.groupLayoutMode}
           onSelect={setActiveTabId}
           onClose={handleCloseTab}
           onAdd={handleAddTab}
@@ -432,6 +436,9 @@ function App() {
           onCreateGroup={createGroup}
           onRenameGroup={renameGroup}
           onSetGroupColor={setGroupColor}
+          onSetGroupBackgroundColor={setGroupBackgroundColor}
+          onSetGroupFontColor={setGroupFontColor}
+          onDuplicateGroup={duplicateGroup}
           onActivateGroup={activateGroup}
           onDeleteGroup={deleteGroup}
           onReorderGroups={reorderGroups}
