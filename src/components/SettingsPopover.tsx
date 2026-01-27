@@ -7,6 +7,7 @@ export interface Settings {
   enableClipboardHistory: boolean;
   enableAutoUpdate: boolean;
   opacity: number;
+  groupLayoutMode: 'dropdown' | 'two-row';
 }
 
 interface Props {
@@ -28,6 +29,10 @@ export function SettingsPopover({ settings, onUpdate, onClose }: Props) {
     }
 
     onUpdate(newSettings);
+  };
+
+  const handleGroupLayoutChange = (mode: 'dropdown' | 'two-row') => {
+    onUpdate({ ...settings, groupLayoutMode: mode });
   };
 
   return (
@@ -97,6 +102,42 @@ export function SettingsPopover({ settings, onUpdate, onClose }: Props) {
                 onChange={() => handleToggle('enableAutoUpdate')}
               />
               <span>자동 업데이트 확인</span>
+            </label>
+          </div>
+
+          <div className="settings-section">
+            <h4>그룹 표시</h4>
+
+            <label
+              className={`settings-item radio-item ${settings.groupLayoutMode === 'dropdown' ? 'selected' : ''}`}
+              onClick={() => handleGroupLayoutChange('dropdown')}
+            >
+              <input
+                type="radio"
+                name="groupLayout"
+                checked={settings.groupLayoutMode === 'dropdown'}
+                readOnly
+              />
+              <div className="radio-label">
+                <span className="radio-title">컴팩트</span>
+                <span className="radio-description">드롭다운으로 전환</span>
+              </div>
+            </label>
+
+            <label
+              className={`settings-item radio-item ${settings.groupLayoutMode === 'two-row' ? 'selected' : ''}`}
+              onClick={() => handleGroupLayoutChange('two-row')}
+            >
+              <input
+                type="radio"
+                name="groupLayout"
+                checked={settings.groupLayoutMode === 'two-row'}
+                readOnly
+              />
+              <div className="radio-label">
+                <span className="radio-title">그룹 탭</span>
+                <span className="radio-description">그룹들을 탭으로 표시 (기본값)</span>
+              </div>
             </label>
           </div>
 

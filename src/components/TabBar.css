@@ -70,12 +70,23 @@
   top: 100%;
   left: 0;
   min-width: 180px;
+  max-height: 320px; /* 그룹이 많을 때 스크롤 가능하도록 제한 */
+  overflow-y: auto;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 100;
   padding: 4px 0;
+}
+
+.group-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-dropdown-menu::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #b0b0b0);
+  border-radius: 999px;
 }
 
 .group-dropdown-header {
@@ -270,6 +281,7 @@
   display: flex;
   height: 100%;
   align-items: flex-end;
+  justify-content: flex-start; /* 탭을 왼쪽 정렬 */
   overflow-x: auto;
   flex: 1;
   padding-left: 0; /* Align with group selector */
@@ -396,6 +408,8 @@
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
   z-index: 10;
+  flex-shrink: 0; /* 좁은 폭에서도 고정 영역 유지 */
+  min-width: 64px;
 }
 
 .action-btn {
@@ -415,4 +429,339 @@
 .action-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+/* --- Two-Row Layout Mode --- */
+
+.tab-bar-container.two-row-mode {
+  flex-direction: column;
+  height: 64px; /* 32px * 2 */
+  align-items: stretch; /* 세로 배치 시 너비를 꽉 채워 왼쪽 정렬 유지 */
+}
+
+.group-tabs-row {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.group-tabs-scroll {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex: 1;
+  min-width: 0; /* 스크롤 활성화를 위해 필수 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-left: 0; /* 탭 행과 동일하게 여백 제거 */
+}
+
+.group-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.group-tab-item {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 28px; /* 탭과 동일한 높이 */
+  min-width: 80px;
+  max-width: 150px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    height 0.2s,
+    color 0.2s;
+  border-right: 1px solid var(--border-color);
+  position: relative;
+  flex-shrink: 0;
+  color: var(--text-primary); /* 기본 색상, 인라인 스타일로 오버라이드 가능 */
+}
+
+.group-tab-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.group-tab-item.active {
+  background: var(--bg-primary);
+  font-weight: 600;
+  border-bottom: 2px solid currentColor; /* 폰트 색상과 동일하게 */
+  height: 32px; /* 일반탭 활성 높이와 동일 */
+}
+
+.group-tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.group-tab-dot:hover {
+  transform: scale(1.3);
+  box-shadow:
+    0 0 0 2px var(--bg-secondary),
+    0 0 0 3px currentColor;
+}
+
+.group-tab-name {
+  flex: 1;
+  font-size: 11px; /* 탭 폰트 크기와 통일 */
+  font-weight: inherit;
+  color: inherit; /* 부모(group-tab-item)의 커스텀 색상 상속 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 6px;
+}
+
+.group-tab-edit-input {
+  background: transparent;
+  border: 1px solid #007acc;
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  padding: 2px 4px;
+  margin: 0;
+  width: 100%;
+}
+
+.group-tab-item.new-group-tab {
+  min-width: 32px;
+  max-width: 32px;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.group-tab-item.new-group-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.group-tab-item.new-group-tab .plus-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* 스크롤과 분리된 신규 그룹 버튼 */
+.group-new-btn {
+  width: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  transition:
+    background 0.2s,
+    color 0.2s;
+  flex-shrink: 0;
+}
+
+.group-new-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* 스크롤 불필요 시 마지막 그룹 옆에 인라인 표시 */
+.group-new-btn.inline {
+  border-left: none;
+  border-right: 1px solid var(--border-color);
+  background: transparent;
+}
+
+.group-new-btn.inline:hover {
+  background: var(--bg-tertiary);
+}
+
+.color-picker-inline {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 101;
+  width: 90px;
+}
+
+.color-picker-inline .color-option {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  border: 2px solid transparent;
+}
+
+.color-picker-inline .color-option:hover {
+  transform: scale(1.15);
+}
+
+.color-picker-inline .color-option.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+/* Group Row Actions (Settings button in two-row mode) */
+.group-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  min-width: 70px; /* 고정 영역 최소 너비 보장 */
+  border-left: 1px solid var(--border-color);
+  height: 100%;
+}
+
+.tab-bar-action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.tab-bar-action:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tab-bar-action.has-indicator::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #007acc;
+  border-radius: 50%;
+}
+
+/* Adjust tabs-list in two-row mode */
+.tab-bar-container.two-row-mode .tabs-list {
+  padding-left: 0; /* 그룹탭과 동일하게 제로 베이스 정렬 */
+  border-bottom: none;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Color Picker Modal */
+.color-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-picker-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  min-width: 280px;
+}
+
+.color-picker-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.color-input {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-bottom: 12px;
+}
+
+.color-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.color-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.color-preset-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+
+.color-preset-option:hover {
+  transform: scale(1.15);
+  border-color: var(--text-primary);
+}
+
+/* Custom color tabs - hover/active effects */
+.tab-item[style*='background'] {
+  transition:
+    filter 0.2s,
+    opacity 0.2s,
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s ease-out,
+    max-width 0.2s ease-out,
+    min-width 0.2s ease-out,
+    padding 0.2s ease-out;
+}
+
+.tab-item[style*='background']:hover {
+  filter: brightness(1.1);
+}
+
+.tab-item[style*='background'].active {
+  filter: brightness(1.2);
+  border-bottom: 2px solid currentColor;
 }

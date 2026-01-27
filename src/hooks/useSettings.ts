@@ -9,6 +9,7 @@ export interface Settings {
   enableClipboardHistory: boolean;
   enableAutoUpdate: boolean;
   opacity: number;
+  groupLayoutMode: 'dropdown' | 'two-row';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enableClipboardHistory: true,
   enableAutoUpdate: true,
   opacity: 100,
+  groupLayoutMode: 'two-row',
 };
 
 export function useSettings() {
