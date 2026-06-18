@@ -1,17 +1,6 @@
 import { useMemo, useState } from 'react';
 
-export interface WorkbenchListItem {
-  id: string;
-  title: string;
-  description?: string;
-  contentTabIds?: string[];
-}
-
-export interface WorkbenchSection {
-  id: string;
-  title: string;
-  items: WorkbenchListItem[];
-}
+import type { WorkbenchListItem, WorkbenchSection } from './workbenchTypes';
 
 interface WorkbenchMenuProps {
   sections: WorkbenchSection[];

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, type ReactElement } from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { WorkbenchNavigation, type WorkbenchSection } from './WorkbenchNavigation';
+import { WorkbenchNavigation } from './WorkbenchNavigation';
+import type { WorkbenchSection } from './workbenchTypes';
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -34,14 +35,31 @@ const sections: WorkbenchSection[] = [
     id: 'documents',
     title: 'Documents',
     items: [
-      { id: 'tab-1', title: 'One', description: 'First tab', contentTabIds: ['tab-1'] },
-      { id: 'tab-2', title: 'Two', description: 'Second tab', contentTabIds: ['tab-1', 'tab-2'] },
+      {
+        id: 'tab-1',
+        title: 'One',
+        description: 'First tab',
+        command: { type: 'select-document-tab', tabId: 'tab-1' },
+      },
+      {
+        id: 'tab-2',
+        title: 'Two',
+        description: 'Second tab',
+        command: { type: 'select-document-tab', tabId: 'tab-2' },
+      },
     ],
   },
   {
     id: 'scripts',
     title: 'Scripts',
-    items: [{ id: 'open-palette', title: 'Open Palette', description: 'Run scripts' }],
+    items: [
+      {
+        id: 'open-palette',
+        title: 'Open Palette',
+        description: 'Run scripts',
+        command: { type: 'open-command-palette' },
+      },
+    ],
   },
 ];
 

@@ -21,12 +21,9 @@ import { useWorkspace } from './hooks/useWorkspace';
 import { DEFAULT_GROUP_ID } from './lib/tabGroups';
 import { AppShell } from './app/AppShell';
 import { ContentTabs, type ContentTab } from './app/ContentTabs';
-import {
-  WorkbenchList,
-  WorkbenchMenu,
-  type WorkbenchListItem,
-  type WorkbenchSection,
-} from './app/WorkbenchNavigation';
+import { WorkbenchList, WorkbenchMenu } from './app/WorkbenchNavigation';
+import { useWorkbenchState } from './app/useWorkbenchState';
+import type { WorkbenchCommand } from './app/workbenchTypes';
 import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
@@ -68,16 +65,6 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const slateEditorRef = useRef<SlateEditorHandle>(null);
-  const [menuSectionIds, setMenuSectionIds] = useState<string[]>([
-    'documents',
-    'scripts',
-    'sessions',
-    'clipboard',
-    'settings',
-  ]);
-  const [activeMenuSectionId, setActiveMenuSectionId] = useState('documents');
-  const [activeListItemId, setActiveListItemId] = useState<string | undefined>(activeTabId);
-
   // 텍스트를 Slate 노드로 변환하는 헬퍼
   const textToSlateValue = (text: string): Descendant[] => {
     const lines = text.split('\n');
@@ -375,136 +362,49 @@ function App() {
     kind: 'document',
   }));
 
-  const availableWorkbenchSections = useMemo<Record<string, WorkbenchSection>>(() => {
-    const documentItems: WorkbenchListItem[] = workspace.tabs.map((tab) => ({
-      id: tab.id,
-      title: tab.title,
-      description: tab.id === activeTabId ? 'Active document tab' : 'Open document tab',
-      contentTabIds: [tab.id],
-    }));
-
-    const sections: Record<string, WorkbenchSection> = {
-      documents: {
-        id: 'documents',
-        title: 'Documents',
-        items: documentItems,
-      },
-      scripts: {
-        id: 'scripts',
-        title: 'Scripts',
-        items: [
-          { id: 'open-palette', title: 'Command Palette', description: 'Search and run scripts' },
-        ],
-      },
-      sessions: {
-        id: 'sessions',
-        title: 'Sessions',
-        items: [
-          {
-            id: 'open-sessions',
-            title: 'Recent sessions',
-            description: `${sessions.length} saved`,
-          },
-        ],
-      },
-      clipboard: {
-        id: 'clipboard',
-        title: 'Clipboard',
-        items: [
-          {
-            id: 'open-clipboard',
-            title: 'Clipboard history',
-            description: `${clipboardHistory.length} captured`,
-          },
-        ],
-      },
-      settings: {
-        id: 'settings',
-        title: 'Settings',
-        items: [{ id: 'open-settings', title: 'Preferences', description: 'Configure Boop2' }],
-      },
-    };
-
-    menuSectionIds.forEach((sectionId, index) => {
-      if (!sections[sectionId]) {
-        sections[sectionId] = {
-          id: sectionId,
-          title: `Custom ${index + 1}`,
-          items: [],
-        };
+  const handleWorkbenchCommand = useCallback(
+    (command: WorkbenchCommand) => {
+      switch (command.type) {
+        case 'select-document-tab':
+          setActiveTabId(command.tabId);
+          return;
+        case 'open-command-palette':
+          setIsPaletteOpen(true);
+          return;
+        case 'open-sessions':
+          setIsSessionsOpen(true);
+          setIsClipboardOpen(false);
+          setIsSettingsOpen(false);
+          return;
+        case 'open-clipboard':
+          setIsClipboardOpen(true);
+          setIsSessionsOpen(false);
+          setIsSettingsOpen(false);
+          return;
+        case 'open-settings':
+          setIsSettingsOpen(true);
+          setIsClipboardOpen(false);
+          setIsSessionsOpen(false);
+          return;
       }
-    });
-
-    return sections;
-  }, [activeTabId, clipboardHistory.length, menuSectionIds, sessions.length, workspace.tabs]);
-
-  const workbenchSections = menuSectionIds
-    .map((sectionId) => availableWorkbenchSections[sectionId])
-    .filter((section): section is WorkbenchSection => Boolean(section));
-  const activeWorkbenchSection =
-    workbenchSections.find((section) => section.id === activeMenuSectionId) ?? workbenchSections[0];
-
-  const handleAddMenuSection = useCallback(() => {
-    const nextSectionId = `custom-${Date.now()}`;
-    setMenuSectionIds((sectionIds) => [...sectionIds, nextSectionId]);
-    setActiveMenuSectionId(nextSectionId);
-    setActiveListItemId(undefined);
-  }, []);
-
-  const handleSelectMenuSection = useCallback((sectionId: string) => {
-    setActiveMenuSectionId(sectionId);
-    setActiveListItemId(undefined);
-  }, []);
-
-  const handleReorderMenuSections = useCallback((sectionIds: string[]) => {
-    setMenuSectionIds(sectionIds);
-  }, []);
-
-  const handleSelectContentTab = useCallback(
-    (tabId: string) => {
-      setActiveTabId(tabId);
-      setActiveListItemId(tabId);
-      setActiveMenuSectionId('documents');
     },
     [setActiveTabId]
   );
 
-  const handleOpenWorkbenchItem = useCallback(
-    (section: WorkbenchSection, item: WorkbenchListItem) => {
-      setActiveListItemId(item.id);
+  const workbench = useWorkbenchState({
+    documentTabs: workspace.tabs.map((tab) => ({ id: tab.id, title: tab.title })),
+    activeDocumentTabId: activeTabId,
+    sessionCount: sessions.length,
+    clipboardCount: clipboardHistory.length,
+    onCommand: handleWorkbenchCommand,
+  });
 
-      if (section.id === 'documents') {
-        const firstContentTabId = item.contentTabIds?.[0] ?? item.id;
-        setActiveTabId(firstContentTabId);
-        return;
-      }
-
-      if (item.id === 'open-palette') {
-        setIsPaletteOpen(true);
-        return;
-      }
-
-      if (item.id === 'open-sessions') {
-        setIsSessionsOpen(true);
-        setIsClipboardOpen(false);
-        setIsSettingsOpen(false);
-        return;
-      }
-
-      if (item.id === 'open-clipboard') {
-        setIsClipboardOpen(true);
-        setIsSessionsOpen(false);
-        setIsSettingsOpen(false);
-        return;
-      }
-
-      if (item.id === 'open-settings') {
-        setIsSettingsOpen(true);
-        setIsClipboardOpen(false);
-        setIsSessionsOpen(false);
-      }
+  const handleSelectContentTab = useCallback(
+    (tabId: string) => {
+      workbench.selectContentTab(tabId);
+      setActiveTabId(tabId);
     },
-    [setActiveTabId]
+    [setActiveTabId, workbench]
   );
 
   if (!isInitialized || !isWorkspaceInitialized) {
@@ -545,19 +445,19 @@ function App() {
       menuHeader="Menu"
       menu={
         <WorkbenchMenu
-          sections={workbenchSections}
-          activeSectionId={activeWorkbenchSection?.id ?? activeMenuSectionId}
-          onSelectSection={handleSelectMenuSection}
-          onAddSection={handleAddMenuSection}
-          onReorderSections={handleReorderMenuSections}
+          sections={workbench.sections}
+          activeSectionId={workbench.activeSection?.id ?? workbench.activeSectionId}
+          onSelectSection={workbench.selectMenuSection}
+          onAddSection={workbench.addMenuSection}
+          onReorderSections={workbench.reorderMenuSections}
         />
       }
-      listHeader={activeWorkbenchSection?.title ?? 'List'}
+      listHeader={workbench.activeSection?.title ?? 'List'}
       list={
         <WorkbenchList
-          section={activeWorkbenchSection}
-          activeItemId={activeListItemId ?? activeTabId}
-          onOpenItem={handleOpenWorkbenchItem}
+          section={workbench.activeSection}
+          activeItemId={workbench.activeItemId ?? activeTabId}
+          onOpenItem={workbench.openWorkbenchItem}
         />
       }
       contentHeader={
