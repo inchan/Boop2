@@ -36,7 +36,7 @@ export default defineConfig(async () => ({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: [],
+    setupFiles: ['src/test/setup.ts'],
     exclude: ['node_modules', 'dist', 'e2e/**/*'],
     coverage: {
       provider: 'v8',

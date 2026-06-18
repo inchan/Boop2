@@ -19,6 +19,14 @@ import { useFind } from './hooks/useFind';
 import { DEFAULT_SETTINGS } from './hooks/useSettings';
 import { useWorkspace } from './hooks/useWorkspace';
 import { DEFAULT_GROUP_ID } from './lib/tabGroups';
+import { AppShell } from './app/AppShell';
+import { ContentTabs, type ContentTab } from './app/ContentTabs';
+import {
+  WorkbenchList,
+  WorkbenchMenu,
+  type WorkbenchListItem,
+  type WorkbenchSection,
+} from './app/WorkbenchNavigation';
 import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
@@ -60,6 +68,15 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const slateEditorRef = useRef<SlateEditorHandle>(null);
+  const [menuSectionIds, setMenuSectionIds] = useState<string[]>([
+    'documents',
+    'scripts',
+    'sessions',
+    'clipboard',
+    'settings',
+  ]);
+  const [activeMenuSectionId, setActiveMenuSectionId] = useState('documents');
+  const [activeListItemId, setActiveListItemId] = useState<string | undefined>(activeTabId);
 
   // 텍스트를 Slate 노드로 변환하는 헬퍼
   const textToSlateValue = (text: string): Descendant[] => {
@@ -352,6 +369,144 @@ function App() {
     editor.focus();
   }, []);
 
+  const contentTabs: ContentTab[] = workspace.tabs.map((tab) => ({
+    id: tab.id,
+    title: tab.title,
+    kind: 'document',
+  }));
+
+  const availableWorkbenchSections = useMemo<Record<string, WorkbenchSection>>(() => {
+    const documentItems: WorkbenchListItem[] = workspace.tabs.map((tab) => ({
+      id: tab.id,
+      title: tab.title,
+      description: tab.id === activeTabId ? 'Active document tab' : 'Open document tab',
+      contentTabIds: [tab.id],
+    }));
+
+    const sections: Record<string, WorkbenchSection> = {
+      documents: {
+        id: 'documents',
+        title: 'Documents',
+        items: documentItems,
+      },
+      scripts: {
+        id: 'scripts',
+        title: 'Scripts',
+        items: [
+          { id: 'open-palette', title: 'Command Palette', description: 'Search and run scripts' },
+        ],
+      },
+      sessions: {
+        id: 'sessions',
+        title: 'Sessions',
+        items: [
+          {
+            id: 'open-sessions',
+            title: 'Recent sessions',
+            description: `${sessions.length} saved`,
+          },
+        ],
+      },
+      clipboard: {
+        id: 'clipboard',
+        title: 'Clipboard',
+        items: [
+          {
+            id: 'open-clipboard',
+            title: 'Clipboard history',
+            description: `${clipboardHistory.length} captured`,
+          },
+        ],
+      },
+      settings: {
+        id: 'settings',
+        title: 'Settings',
+        items: [{ id: 'open-settings', title: 'Preferences', description: 'Configure Boop2' }],
+      },
+    };
+
+    menuSectionIds.forEach((sectionId, index) => {
+      if (!sections[sectionId]) {
+        sections[sectionId] = {
+          id: sectionId,
+          title: `Custom ${index + 1}`,
+          items: [],
+        };
+      }
+    });
+
+    return sections;
+  }, [activeTabId, clipboardHistory.length, menuSectionIds, sessions.length, workspace.tabs]);
+
+  const workbenchSections = menuSectionIds
+    .map((sectionId) => availableWorkbenchSections[sectionId])
+    .filter((section): section is WorkbenchSection => Boolean(section));
+  const activeWorkbenchSection =
+    workbenchSections.find((section) => section.id === activeMenuSectionId) ?? workbenchSections[0];
+
+  const handleAddMenuSection = useCallback(() => {
+    const nextSectionId = `custom-${Date.now()}`;
+    setMenuSectionIds((sectionIds) => [...sectionIds, nextSectionId]);
+    setActiveMenuSectionId(nextSectionId);
+    setActiveListItemId(undefined);
+  }, []);
+
+  const handleSelectMenuSection = useCallback((sectionId: string) => {
+    setActiveMenuSectionId(sectionId);
+    setActiveListItemId(undefined);
+  }, []);
+
+  const handleReorderMenuSections = useCallback((sectionIds: string[]) => {
+    setMenuSectionIds(sectionIds);
+  }, []);
+
+  const handleSelectContentTab = useCallback(
+    (tabId: string) => {
+      setActiveTabId(tabId);
+      setActiveListItemId(tabId);
+      setActiveMenuSectionId('documents');
+    },
+    [setActiveTabId]
+  );
+
+  const handleOpenWorkbenchItem = useCallback(
+    (section: WorkbenchSection, item: WorkbenchListItem) => {
+      setActiveListItemId(item.id);
+
+      if (section.id === 'documents') {
+        const firstContentTabId = item.contentTabIds?.[0] ?? item.id;
+        setActiveTabId(firstContentTabId);
+        return;
+      }
+
+      if (item.id === 'open-palette') {
+        setIsPaletteOpen(true);
+        return;
+      }
+
+      if (item.id === 'open-sessions') {
+        setIsSessionsOpen(true);
+        setIsClipboardOpen(false);
+        setIsSettingsOpen(false);
+        return;
+      }
+
+      if (item.id === 'open-clipboard') {
+        setIsClipboardOpen(true);
+        setIsSessionsOpen(false);
+        setIsSettingsOpen(false);
+        return;
+      }
+
+      if (item.id === 'open-settings') {
+        setIsSettingsOpen(true);
+        setIsClipboardOpen(false);
+        setIsSessionsOpen(false);
+      }
+    },
+    [setActiveTabId]
+  );
+
   if (!isInitialized || !isWorkspaceInitialized) {
     return (
       <div
@@ -377,135 +532,170 @@ function App() {
   }
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        opacity: (settings.opacity ?? 100) / 100,
-      }}
-    >
-      <CommandPalette
-        isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
-        scripts={scripts}
-        onSelect={runSelectedScript}
-      />
-      {isClipboardOpen && settings.enableClipboardHistory && (
-        <ClipboardPopover
-          history={clipboardHistory}
-          onSelect={handlePasteFromHistory}
-          onRemoveItem={(idx) => setClipboardHistory((prev) => prev.filter((_, i) => i !== idx))}
-          onClear={() => setClipboardHistory([])}
-          onClose={() => setIsClipboardOpen(false)}
+    <AppShell
+      opacity={(settings.opacity ?? 100) / 100}
+      top={
+        <>
+          <span className="app-shell__brand">Boop2</span>
+          <span>{scripts.length} scripts</span>
+          <span className="app-shell__top-spacer" />
+          <span>{workspace.tabs.length} tabs</span>
+        </>
+      }
+      menuHeader="Menu"
+      menu={
+        <WorkbenchMenu
+          sections={workbenchSections}
+          activeSectionId={activeWorkbenchSection?.id ?? activeMenuSectionId}
+          onSelectSection={handleSelectMenuSection}
+          onAddSection={handleAddMenuSection}
+          onReorderSections={handleReorderMenuSections}
         />
-      )}
-      {isSessionsOpen && settings.enableSessionRestore && (
-        <SessionPopover
-          sessions={sessions.slice(0, 2)}
-          onSelect={handleRestoreSession}
-          onClear={() => {
-            setSessions([]);
-            localStorage.removeItem(STORAGE_KEY_SESSIONS);
-          }}
-          onClose={() => setIsSessionsOpen(false)}
+      }
+      listHeader={activeWorkbenchSection?.title ?? 'List'}
+      list={
+        <WorkbenchList
+          section={activeWorkbenchSection}
+          activeItemId={activeListItemId ?? activeTabId}
+          onOpenItem={handleOpenWorkbenchItem}
         />
-      )}
-      {isSettingsOpen && (
-        <SettingsPopover
-          settings={settings}
-          onUpdate={handleUpdateSettings}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      )}
-
-      <ErrorBoundary fallback={<div>Error loading TabBar</div>}>
-        <TabBar
-          tabs={workspace.tabs}
-          groups={workspace.groups}
+      }
+      contentHeader={
+        <ContentTabs
+          tabs={contentTabs}
           activeTabId={activeTabId}
-          groupLayoutMode={settings.groupLayoutMode}
-          onSelect={setActiveTabId}
-          onClose={handleCloseTab}
+          onSelect={handleSelectContentTab}
           onAdd={handleAddTab}
-          onRename={renameTab}
-          onDuplicate={duplicateTab}
-          onCloseOthers={closeOtherTabs}
-          onCloseToRight={closeTabsToRight}
-          onCloseToLeft={closeTabsToLeft}
-          onCreateGroup={createGroup}
-          onRenameGroup={renameGroup}
-          onSetGroupColor={setGroupColor}
-          onSetGroupBackgroundColor={setGroupBackgroundColor}
-          onSetGroupFontColor={setGroupFontColor}
-          onDuplicateGroup={duplicateGroup}
-          onActivateGroup={activateGroup}
-          onDeleteGroup={deleteGroup}
-          onReorderGroups={reorderGroups}
-          moveTabToGroup={moveTabToGroup}
-          onToggleClipboard={() => {
-            setIsClipboardOpen(!isClipboardOpen);
-            setIsSessionsOpen(false);
-            setIsSettingsOpen(false);
-          }}
-          onToggleSessions={() => {
-            setIsSessionsOpen(!isSessionsOpen);
-            setIsClipboardOpen(false);
-            setIsSettingsOpen(false);
-          }}
-          onToggleSettings={() => {
-            setIsSettingsOpen(!isSettingsOpen);
-            setIsClipboardOpen(false);
-            setIsSessionsOpen(false);
-          }}
-          hasHistory={settings.enableClipboardHistory && clipboardHistory.length > 0}
-          hasSessions={settings.enableSessionRestore && sessions.length > 0}
         />
-      </ErrorBoundary>
+      }
+      content={
+        <>
+          <CommandPalette
+            isOpen={isPaletteOpen}
+            onClose={() => setIsPaletteOpen(false)}
+            scripts={scripts}
+            onSelect={runSelectedScript}
+          />
+          {isClipboardOpen && settings.enableClipboardHistory && (
+            <ClipboardPopover
+              history={clipboardHistory}
+              onSelect={handlePasteFromHistory}
+              onRemoveItem={(idx) =>
+                setClipboardHistory((prev) => prev.filter((_, i) => i !== idx))
+              }
+              onClear={() => setClipboardHistory([])}
+              onClose={() => setIsClipboardOpen(false)}
+            />
+          )}
+          {isSessionsOpen && settings.enableSessionRestore && (
+            <SessionPopover
+              sessions={sessions.slice(0, 2)}
+              onSelect={handleRestoreSession}
+              onClear={() => {
+                setSessions([]);
+                localStorage.removeItem(STORAGE_KEY_SESSIONS);
+              }}
+              onClose={() => setIsSessionsOpen(false)}
+            />
+          )}
+          {isSettingsOpen && (
+            <SettingsPopover
+              settings={settings}
+              onUpdate={handleUpdateSettings}
+              onClose={() => setIsSettingsOpen(false)}
+            />
+          )}
 
-      {/* FindPanel - inline below TabBar (VS Code style) */}
-      <FindPanel
-        isOpen={findState.isOpen}
-        onClose={closeFind}
-        onSearch={setSearchTerm}
-        onReplace={setReplaceTerm}
-        onNext={goToNext}
-        onPrevious={goToPrevious}
-        onReplaceCurrent={replaceCurrent}
-        onReplaceAll={replaceAll}
-        matchCount={findState.matches.length}
-        activeIndex={findState.activeIndex}
-        hasNoMatches={findState.searchTerm !== '' && findState.matches.length === 0}
-        replaceTerm={findState.replaceTerm}
-        caseSensitive={findState.caseSensitive}
-        wholeWord={findState.wholeWord}
-        onToggleCaseSensitive={toggleCaseSensitive}
-        onToggleWholeWord={toggleWholeWord}
-      />
+          <ErrorBoundary fallback={<div>Error loading TabBar</div>}>
+            <TabBar
+              tabs={workspace.tabs}
+              groups={workspace.groups}
+              activeTabId={activeTabId}
+              groupLayoutMode={settings.groupLayoutMode}
+              onSelect={setActiveTabId}
+              onClose={handleCloseTab}
+              onAdd={handleAddTab}
+              onRename={renameTab}
+              onDuplicate={duplicateTab}
+              onCloseOthers={closeOtherTabs}
+              onCloseToRight={closeTabsToRight}
+              onCloseToLeft={closeTabsToLeft}
+              onCreateGroup={createGroup}
+              onRenameGroup={renameGroup}
+              onSetGroupColor={setGroupColor}
+              onSetGroupBackgroundColor={setGroupBackgroundColor}
+              onSetGroupFontColor={setGroupFontColor}
+              onDuplicateGroup={duplicateGroup}
+              onActivateGroup={activateGroup}
+              onDeleteGroup={deleteGroup}
+              onReorderGroups={reorderGroups}
+              moveTabToGroup={moveTabToGroup}
+              onToggleClipboard={() => {
+                setIsClipboardOpen(!isClipboardOpen);
+                setIsSessionsOpen(false);
+                setIsSettingsOpen(false);
+              }}
+              onToggleSessions={() => {
+                setIsSessionsOpen(!isSessionsOpen);
+                setIsClipboardOpen(false);
+                setIsSettingsOpen(false);
+              }}
+              onToggleSettings={() => {
+                setIsSettingsOpen(!isSettingsOpen);
+                setIsClipboardOpen(false);
+                setIsSessionsOpen(false);
+              }}
+              hasHistory={settings.enableClipboardHistory && clipboardHistory.length > 0}
+              hasSessions={settings.enableSessionRestore && sessions.length > 0}
+            />
+          </ErrorBoundary>
 
-      <ErrorBoundary>
-        <SlateEditor
-          ref={slateEditorRef}
-          editor={activeEditor}
-          initialValue={activeTab?.content || ''}
-          onChange={handleTabContentChange}
-          autoFocus={true}
-          placeholder="Type or paste text here..."
-          findState={findState}
-        />
-      </ErrorBoundary>
+          {/* FindPanel - inline below TabBar (VS Code style) */}
+          <FindPanel
+            isOpen={findState.isOpen}
+            onClose={closeFind}
+            onSearch={setSearchTerm}
+            onReplace={setReplaceTerm}
+            onNext={goToNext}
+            onPrevious={goToPrevious}
+            onReplaceCurrent={replaceCurrent}
+            onReplaceAll={replaceAll}
+            matchCount={findState.matches.length}
+            activeIndex={findState.activeIndex}
+            hasNoMatches={findState.searchTerm !== '' && findState.matches.length === 0}
+            replaceTerm={findState.replaceTerm}
+            caseSensitive={findState.caseSensitive}
+            wholeWord={findState.wholeWord}
+            onToggleCaseSensitive={toggleCaseSensitive}
+            onToggleWholeWord={toggleWholeWord}
+          />
 
-      <div className={`status-bar status-${status.type}`}>
-        <span className="status-text">{status.text || 'Ready'}</span>
-        <span>
-          {workspace.tabs.length} tabs • {scripts.length} scripts
-        </span>
-      </div>
+          <ErrorBoundary>
+            <SlateEditor
+              ref={slateEditorRef}
+              editor={activeEditor}
+              initialValue={activeTab?.content || ''}
+              onChange={handleTabContentChange}
+              autoFocus={true}
+              placeholder="Type or paste text here..."
+              findState={findState}
+            />
+          </ErrorBoundary>
 
-      {updateInfo?.available && (
-        <UpdateNotification updateInfo={updateInfo} onDismiss={() => setUpdateInfo(null)} />
-      )}
-    </div>
+          {updateInfo?.available && (
+            <UpdateNotification updateInfo={updateInfo} onDismiss={() => setUpdateInfo(null)} />
+          )}
+        </>
+      }
+      bottom={
+        <div className={`status-bar status-${status.type}`}>
+          <span className="status-text">{status.text || 'Ready'}</span>
+          <span>
+            {workspace.tabs.length} tabs • {scripts.length} scripts
+          </span>
+        </div>
+      }
+    />
   );
 }
 
