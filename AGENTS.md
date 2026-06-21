@@ -8,6 +8,31 @@
 
 Scriptable text manipulation tool. Tauri 2.0 + React 19 + Slate editor + 73 bundled JS scripts.
 
+## GIT WORKFLOW
+
+- Default integration branch: `origin/develop`.
+- Create all feature/fix branches from `origin/develop`.
+- Create all git worktrees from `origin/develop`.
+- Open PRs against `origin/develop` unless the user explicitly requests otherwise.
+- Standard flow: `local` -> `PR` -> `develop` -> `main`.
+- `main` is release-target only. Release work uses a separate workflow targeting `main`.
+- Do not merge normal feature/fix work directly into `main`.
+
+### GitHub Account
+
+- Before Git/GitHub operations on the current working branch, use `gh` to switch to the GitHub account for `kangsazang@gmail.com`.
+- The GitHub username for `kangsazang@gmail.com` is `inchan`; use `gh auth switch -h github.com -u inchan`.
+- Do not pass the email address to `gh auth switch --user`; `gh` expects the GitHub username.
+- Record the previously active `gh` account before switching, for example from `gh auth status`.
+- After the work is complete, switch `gh` back to the previously active account, e.g. `gh auth switch -h github.com -u <previous-user>`.
+- If switching to `inchan` fails, stop and ask the user to fix `gh` authentication instead of using another account.
+
+### Versioning
+
+- Versioning starts at `0.0.1`.
+- By default, increment only the patch number, e.g. `0.0.1` -> `0.0.2`.
+- Do not bump major or minor versions unless the user explicitly requests it.
+
 ## STRUCTURE
 
 ```
@@ -133,10 +158,12 @@ npm run build:install    # Build + copy to /Applications (macOS)
 
 ## RELEASE
 
-1. Bump version in `package.json` + `src-tauri/tauri.conf.json`
-2. Commit: `chore: bump version to vX.Y.Z`
-3. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
-4. GitHub Actions builds + uploads artifacts
+1. Use the separate release workflow targeting `main`.
+2. Bump version in `package.json` + `src-tauri/tauri.conf.json`.
+3. Increment only the patch version unless the user explicitly requests a major/minor bump.
+4. Commit: `chore: bump version to vX.Y.Z`.
+5. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+6. GitHub Actions builds + uploads artifacts.
 
 ## NOTES
 

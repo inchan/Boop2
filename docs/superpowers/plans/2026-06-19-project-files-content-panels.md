@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the generic workbench menu/list/content composition with Project, Files, and Content panels backed by root-folder Projects and read-only file loading.
+**Goal:** Replace the generic workbench menu/list/content composition with Project, Files, and Content panels backed by root-folder Projects, file/folder creation, and file loading.
 
-**Architecture:** Add a focused project file shell model instead of extending the current generic workbench sections. Tauri owns native folder selection and read-only filesystem commands; React owns Project persistence, lazy tree state, in-memory file tabs, and presentation. The legacy `TabBar` and content group UI stop rendering in the new shell.
+**Architecture:** Add a focused project file shell model instead of extending the current generic workbench sections. Tauri owns native folder selection, filesystem reads, and default file/folder creation; React owns Project persistence, lazy tree state, in-memory file tabs, and presentation. The legacy `TabBar` and content group UI stop rendering in the new shell.
 
 **Tech Stack:** Tauri 2, React 19, TypeScript, Slate editor, Vitest, Playwright, Rust filesystem APIs, `@tauri-apps/plugin-dialog`.
 
@@ -23,7 +23,7 @@
 - Create focused tests beside each module.
 - Modify `src/App.tsx`: replace `WorkbenchMenu`, `WorkbenchList`, `ContentTabs`, and body `TabBar` rendering with the new Project/Files/Content modules; keep utility actions in the shell top header.
 - Modify `src/app/AppShell.css`: add Project/Files/Content row and tab styles.
-- Modify `src-tauri/src/lib.rs`: add read-only filesystem commands and dialog plugin init.
+- Modify `src-tauri/src/lib.rs`: add filesystem read/create commands and dialog plugin init.
 - Modify `src-tauri/Cargo.toml`, `package.json`, `package-lock.json`, `src-tauri/Cargo.lock`, and `src-tauri/capabilities/default.json`: add Tauri dialog support and permissions.
 
 ---
@@ -31,6 +31,7 @@
 ### Task 1: Backend Read Commands
 
 **Files:**
+
 - Modify: `src-tauri/src/lib.rs`
 - Test: `src-tauri/src/lib.rs`
 
@@ -178,6 +179,7 @@ Expected: both tests pass.
 ### Task 2: Dialog Dependency
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `package-lock.json`
 - Modify: `src-tauri/Cargo.toml`
@@ -235,6 +237,7 @@ Expected: TypeScript and Rust both compile.
 ### Task 3: Project Path Utilities
 
 **Files:**
+
 - Create: `src/app/projectPathUtils.ts`
 - Test: `src/app/projectPathUtils.test.ts`
 
@@ -328,6 +331,7 @@ Expected: pass.
 ### Task 4: Project File Types And Client
 
 **Files:**
+
 - Create: `src/app/projectFileTypes.ts`
 - Create: `src/app/projectFileClient.ts`
 - Test: `src/app/projectFileClient.test.ts`
@@ -453,6 +457,7 @@ Expected: pass.
 ### Task 5: Project Workspace State
 
 **Files:**
+
 - Create: `src/app/useProjectWorkspace.ts`
 - Test: `src/app/useProjectWorkspace.test.tsx`
 
@@ -559,6 +564,7 @@ Expected: pass.
 ### Task 6: Project Panel UI
 
 **Files:**
+
 - Create: `src/app/ProjectPanel.tsx`
 - Test: `src/app/ProjectPanel.test.tsx`
 
@@ -596,6 +602,7 @@ Expected: pass.
 ### Task 7: Files Tree UI
 
 **Files:**
+
 - Create: `src/app/useOverflowTitle.ts`
 - Create: `src/app/FilesTree.tsx`
 - Test: `src/app/FilesTree.test.tsx`
@@ -665,6 +672,7 @@ Expected: pass.
 ### Task 8: File Content Tabs UI
 
 **Files:**
+
 - Create: `src/app/FileContentTabs.tsx`
 - Test: `src/app/FileContentTabs.test.tsx`
 
@@ -703,6 +711,7 @@ Expected: pass.
 ### Task 9: App Composition
 
 **Files:**
+
 - Modify: `src/App.tsx`
 - Modify: `src/app/AppShell.css`
 - Test: update existing app shell/navigation tests as needed
@@ -754,6 +763,7 @@ Expected: app-level tests pass.
 ### Task 10: Styling And Visual Verification
 
 **Files:**
+
 - Modify: `src/app/AppShell.css`
 
 - [ ] **Step 1: Add styles**
@@ -794,6 +804,7 @@ Save screenshots to `/tmp/boop2-project-files-content-panels/` for:
 ### Task 11: Final Verification
 
 **Files:**
+
 - All touched files
 
 - [ ] **Step 1: Format**
@@ -836,6 +847,11 @@ Then verify:
 - Project header `+` opens a folder picker.
 - Selecting this repository creates a `Boop2` Project.
 - Files panel shows root entries without `.git`, `node_modules`, `dist`, or `target`.
+- Files header `+` opens file/folder creation choices.
+- Creating a file adds `Untitled.md` or the next numbered Untitled markdown file and opens it.
+- Creating a folder adds `Untitled` or the next numbered Untitled folder.
+- Dragging a file or folder onto a folder moves it into that folder.
+- Dragging a file or folder onto the Files panel root area moves it to the active Project root.
 - Hovering a folder row reveals the disclosure icon.
 - Opening a file creates a single Content tab.
 - Reopening the same file activates that tab.

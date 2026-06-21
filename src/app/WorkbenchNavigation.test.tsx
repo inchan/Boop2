@@ -102,6 +102,81 @@ describe('WorkbenchNavigation', () => {
     expect(onAddSection).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the add menu action as a plus-only control', () => {
+    const host = render(
+      <WorkbenchNavigation
+        sections={sections}
+        activeSectionId="documents"
+        activeItemId="tab-1"
+        onSelectSection={vi.fn()}
+        onAddSection={vi.fn()}
+        onReorderSections={vi.fn()}
+        onOpenItem={vi.fn()}
+      />
+    );
+
+    const addButton = host.querySelector<HTMLButtonElement>('[data-testid="workbench-menu-add"]');
+
+    expect(addButton?.textContent?.trim()).toBe('+');
+    expect(addButton?.getAttribute('aria-label')).toBe('Add menu section');
+  });
+
+  it('renders default first-letter menu icons', () => {
+    const host = render(
+      <WorkbenchNavigation
+        sections={sections}
+        activeSectionId="documents"
+        activeItemId="tab-1"
+        onSelectSection={vi.fn()}
+        onAddSection={vi.fn()}
+        onReorderSections={vi.fn()}
+        onOpenItem={vi.fn()}
+      />
+    );
+
+    const documentsIcon = host.querySelector('[data-testid="workbench-menu-icon-documents"]');
+
+    expect(documentsIcon?.textContent).toBe('D');
+    expect(documentsIcon?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('renders configured emoji and image menu icons', () => {
+    const iconSections: WorkbenchSection[] = [
+      {
+        id: 'emoji',
+        title: 'Emoji',
+        icon: { type: 'emoji', value: '🧪' },
+        items: [],
+      },
+      {
+        id: 'photo',
+        title: 'Photo',
+        icon: { type: 'image', src: 'https://example.com/photo.png', alt: 'Photo icon' },
+        items: [],
+      },
+    ];
+
+    const host = render(
+      <WorkbenchNavigation
+        sections={iconSections}
+        activeSectionId="emoji"
+        onSelectSection={vi.fn()}
+        onAddSection={vi.fn()}
+        onReorderSections={vi.fn()}
+        onOpenItem={vi.fn()}
+      />
+    );
+
+    const emojiIcon = host.querySelector('[data-testid="workbench-menu-icon-emoji"]');
+    const photoIcon = host.querySelector<HTMLImageElement>(
+      '[data-testid="workbench-menu-icon-photo"] img'
+    );
+
+    expect(emojiIcon?.textContent).toBe('🧪');
+    expect(photoIcon?.src).toBe('https://example.com/photo.png');
+    expect(photoIcon?.alt).toBe('Photo icon');
+  });
+
   it('supports drag-and-drop menu reordering', () => {
     const onReorderSections = vi.fn();
     const host = render(

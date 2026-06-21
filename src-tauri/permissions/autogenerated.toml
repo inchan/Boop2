@@ -4,6 +4,31 @@ description = "Allows the load_scripts command"
 commands.allow = ["load_scripts"]
 
 [[permission]]
+identifier = "allow-list-project-directory"
+description = "Allows the list_project_directory command"
+commands.allow = ["list_project_directory"]
+
+[[permission]]
+identifier = "allow-read-project-file"
+description = "Allows the read_project_file command"
+commands.allow = ["read_project_file"]
+
+[[permission]]
+identifier = "allow-create-project-file"
+description = "Allows the create_project_file command"
+commands.allow = ["create_project_file"]
+
+[[permission]]
+identifier = "allow-create-project-folder"
+description = "Allows the create_project_folder command"
+commands.allow = ["create_project_folder"]
+
+[[permission]]
+identifier = "allow-move-project-entry"
+description = "Allows the move_project_entry command"
+commands.allow = ["move_project_entry"]
+
+[[permission]]
 identifier = "allow-greet"
 description = "Allows the greet command"
 commands.allow = ["greet"]

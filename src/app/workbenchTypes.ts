@@ -5,6 +5,11 @@ export type WorkbenchCommand =
   | { type: 'open-clipboard' }
   | { type: 'open-settings' };
 
+export type WorkbenchMenuIcon =
+  | { type: 'emoji'; value: string; label?: string }
+  | { type: 'image'; src: string; alt?: string }
+  | { type: 'letter'; value?: string };
+
 export interface WorkbenchListItem {
   id: string;
   title: string;
@@ -15,5 +20,6 @@ export interface WorkbenchListItem {
 export interface WorkbenchSection {
   id: string;
   title: string;
+  icon?: WorkbenchMenuIcon;
   items: WorkbenchListItem[];
 }

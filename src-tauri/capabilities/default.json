@@ -6,9 +6,15 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "dialog:allow-open",
     "updater:default",
     "process:allow-restart",
     "allow-load-scripts",
+    "allow-list-project-directory",
+    "allow-read-project-file",
+    "allow-create-project-file",
+    "allow-create-project-folder",
+    "allow-move-project-entry",
     "allow-greet"
   ]
 }

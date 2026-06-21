@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { createEditor, Descendant } from 'slate';
 import { withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
@@ -7,8 +8,8 @@ import SlateEditor, { SlateEditorHandle, CustomEditor } from './components/Slate
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CommandPalette } from './components/CommandPalette';
 import { FindPanel } from './components/FindPanel';
-import { TabBar } from './components/TabBar';
 import { ClipboardPopover } from './components/ClipboardPopover';
+import { ContextMenu, type MenuItem } from './components/ContextMenu';
 import { SessionPopover, Session } from './components/SessionPopover';
 import { SettingsPopover, Settings } from './components/SettingsPopover';
 import { ScriptModel, runScriptAsync } from './lib/ScriptRunner';
@@ -17,46 +18,29 @@ import { UpdateNotification } from './components/UpdateNotification';
 import { checkForUpdates, type UpdateInfo } from './lib/updater';
 import { useFind } from './hooks/useFind';
 import { DEFAULT_SETTINGS } from './hooks/useSettings';
-import { useWorkspace } from './hooks/useWorkspace';
-import { DEFAULT_GROUP_ID } from './lib/tabGroups';
 import { AppShell } from './app/AppShell';
-import { ContentTabs, type ContentTab } from './app/ContentTabs';
-import { WorkbenchList, WorkbenchMenu } from './app/WorkbenchNavigation';
-import { useWorkbenchState } from './app/useWorkbenchState';
-import type { WorkbenchCommand } from './app/workbenchTypes';
+import { FileContentTabs } from './app/FileContentTabs';
+import { FilesPanelHeader } from './app/FilesPanelHeader';
+import { FilesTree } from './app/FilesTree';
+import { ProjectPanel, ProjectPanelHeader } from './app/ProjectPanel';
+import type { ProjectEntry, ProjectFileNode } from './app/projectFileTypes';
+import { useProjectWorkspace } from './app/useProjectWorkspace';
 import './App.css';
 
 const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 // const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3'; // Handled by useWorkspace
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
 
+type ShellContextMenu = {
+  kind: 'project';
+  project: ProjectEntry;
+  position: { x: number; y: number };
+};
+
 function App() {
-  const {
-    workspace,
-    isInitialized: isWorkspaceInitialized,
-    activeTabId,
-    activeTab,
-    setActiveTabId,
-    addTab,
-    closeTab,
-    updateTabContent,
-    renameTab,
-    duplicateTab,
-    closeOtherTabs,
-    closeTabsToRight,
-    closeTabsToLeft,
-    restoreSession,
-    createGroup,
-    renameGroup,
-    setGroupColor,
-    setGroupBackgroundColor,
-    setGroupFontColor,
-    duplicateGroup,
-    deleteGroup,
-    moveTabToGroup,
-    activateGroup,
-    reorderGroups,
-  } = useWorkspace();
+  const projectWorkspace = useProjectWorkspace();
+  const activeTabId = projectWorkspace.activeTabId;
+  const activeTab = projectWorkspace.activeTab;
 
   const [clipboardHistory, setClipboardHistory] = useState<string[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -79,7 +63,7 @@ function App() {
   const [editorVersion, setEditorVersion] = useState(0);
 
   // 현재 활성 탭의 에디터 인스턴스 (ref를 캐시로 사용하는 의도적 패턴)
-  /* eslint-disable react-hooks/refs, react-hooks/exhaustive-deps */
+  /* eslint-disable react-hooks/exhaustive-deps */
   const activeEditor = useMemo((): CustomEditor => {
     if (!activeTabId) {
       const tempEditor = withReact(withHistory(createEditor())) as CustomEditor;
@@ -92,14 +76,14 @@ function App() {
       return existing;
     }
 
-    const tabContent = workspace.tabs.find((t) => t.id === activeTabId)?.content || '';
+    const tabContent = activeTab?.content || '';
     const newEditor = withReact(withHistory(createEditor())) as CustomEditor;
     newEditor.children = textToSlateValue(tabContent);
     editorsMapRef.current.set(activeTabId, newEditor);
 
     return newEditor;
-  }, [activeTabId, editorVersion, workspace.tabs]);
-  /* eslint-enable react-hooks/refs, react-hooks/exhaustive-deps */
+  }, [activeTab?.content, activeTabId, editorVersion]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const [scripts, setScripts] = useState<ScriptModel[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -107,6 +91,7 @@ function App() {
     type: 'info',
     text: '',
   });
+  const [contextMenu, setContextMenu] = useState<ShellContextMenu | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
@@ -129,8 +114,7 @@ function App() {
         const savedStack = localStorage.getItem(STORAGE_KEY_SESSIONS);
         if (savedStack) sessionStack = JSON.parse(savedStack);
 
-        // Note: Legacy session migration logic (moving tmp to stack) is disabled
-        // to let useWorkspace handle V3 -> V1 migration seamlessly without clearing data.
+        // Note: Legacy session migration logic is disabled during the Project shell migration.
       } catch (error) {
         console.error(error);
       }
@@ -165,9 +149,9 @@ function App() {
   // 교체 콜백
   const handleReplace = useCallback(
     (newText: string) => {
-      updateTabContent(activeTabId, newText);
+      projectWorkspace.updateActiveTabContent(newText);
     },
-    [activeTabId, updateTabContent]
+    [projectWorkspace]
   );
 
   // Find feature hook
@@ -189,36 +173,28 @@ function App() {
     onReplace: handleReplace,
   });
 
-  const handleAddTab = useCallback(() => {
-    // 현재 활성 탭의 그룹에 새 탭 생성
-    addTab(activeTab?.groupId || DEFAULT_GROUP_ID);
-  }, [addTab, activeTab?.groupId]);
-
   const handleCloseTab = useCallback(
     (id: string) => {
       editorsMapRef.current.delete(id);
       setEditorVersion((v) => v + 1);
-      closeTab(id);
+      projectWorkspace.closeTab(id);
     },
-    [closeTab]
+    [projectWorkspace]
   );
 
   const handleTabContentChange = useCallback(
     (val: string) => {
-      updateTabContent(activeTabId, val);
+      projectWorkspace.updateActiveTabContent(val);
     },
-    [activeTabId, updateTabContent]
+    [projectWorkspace]
   );
 
-  const handleRestoreSession = useCallback(
-    (session: Session) => {
-      // Save current as session history before restoring?
-      // For now, simpler restore logic compatible with existing flow
-      restoreSession(session.tabs);
-      setStatus({ type: 'info', text: 'Session restored' });
-    },
-    [restoreSession]
-  );
+  const handleRestoreSession = useCallback((session: Session) => {
+    setStatus({
+      type: 'info',
+      text: `Session restore is unavailable in Project view (${session.tabs.length} tabs)`,
+    });
+  }, []);
 
   const handleUpdateSettings = useCallback((newSettings: Settings) => {
     setSettings(newSettings);
@@ -265,6 +241,19 @@ function App() {
         e.preventDefault();
         openFind();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 't' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        void projectWorkspace
+          .createFile()
+          .then((node) => {
+            if (node) {
+              setStatus({ type: 'success', text: `Created file: ${node.name}` });
+            }
+          })
+          .catch((error) => {
+            setStatus({ type: 'error', text: `Error creating file: ${error}` });
+          });
+      }
       // Cmd+G: Next match (VS Code style)
       if ((e.metaKey || e.ctrlKey) && e.key === 'g' && !e.shiftKey) {
         e.preventDefault();
@@ -283,26 +272,22 @@ function App() {
         e.preventDefault();
         replaceAll();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 't') {
-        e.preventDefault();
-        handleAddTab();
-      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
         e.preventDefault();
-        handleCloseTab(activeTabId);
+        if (activeTabId) handleCloseTab(activeTabId);
       }
       if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
         const index = parseInt(e.key) - 1;
-        if (workspace.tabs[index]) setActiveTabId(workspace.tabs[index].id);
+        const tab = projectWorkspace.openTabs[index];
+        if (tab) projectWorkspace.selectTab(tab.id);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     activeTabId,
-    handleAddTab,
     handleCloseTab,
-    workspace.tabs,
+    projectWorkspace,
     scripts,
     findState.isOpen,
     closeFind,
@@ -311,7 +296,6 @@ function App() {
     goToPrevious,
     replaceCurrent,
     replaceAll,
-    setActiveTabId,
   ]);
 
   const runSelectedScript = useCallback(async (script: ScriptModel) => {
@@ -356,58 +340,133 @@ function App() {
     editor.focus();
   }, []);
 
-  const contentTabs: ContentTab[] = workspace.tabs.map((tab) => ({
-    id: tab.id,
-    title: tab.title,
-    kind: 'document',
-  }));
+  const handleAddProject = useCallback(async () => {
+    try {
+      await projectWorkspace.addProject();
+    } catch (error) {
+      setStatus({ type: 'error', text: `Error adding Project: ${error}` });
+    }
+  }, [projectWorkspace]);
 
-  const handleWorkbenchCommand = useCallback(
-    (command: WorkbenchCommand) => {
-      switch (command.type) {
-        case 'select-document-tab':
-          setActiveTabId(command.tabId);
-          return;
-        case 'open-command-palette':
-          setIsPaletteOpen(true);
-          return;
-        case 'open-sessions':
-          setIsSessionsOpen(true);
-          setIsClipboardOpen(false);
-          setIsSettingsOpen(false);
-          return;
-        case 'open-clipboard':
-          setIsClipboardOpen(true);
-          setIsSessionsOpen(false);
-          setIsSettingsOpen(false);
-          return;
-        case 'open-settings':
-          setIsSettingsOpen(true);
-          setIsClipboardOpen(false);
-          setIsSessionsOpen(false);
-          return;
+  const handleSelectProject = useCallback(
+    async (projectId: string) => {
+      try {
+        await projectWorkspace.selectProject(projectId);
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error loading Project: ${error}` });
       }
     },
-    [setActiveTabId]
+    [projectWorkspace]
   );
 
-  const workbench = useWorkbenchState({
-    documentTabs: workspace.tabs.map((tab) => ({ id: tab.id, title: tab.title })),
-    activeDocumentTabId: activeTabId,
-    sessionCount: sessions.length,
-    clipboardCount: clipboardHistory.length,
-    onCommand: handleWorkbenchCommand,
-  });
-
-  const handleSelectContentTab = useCallback(
-    (tabId: string) => {
-      workbench.selectContentTab(tabId);
-      setActiveTabId(tabId);
+  const handleToggleFolder = useCallback(
+    async (node: ProjectFileNode) => {
+      try {
+        await projectWorkspace.toggleFolder(node);
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error loading folder: ${error}` });
+      }
     },
-    [setActiveTabId, workbench]
+    [projectWorkspace]
   );
 
-  if (!isInitialized || !isWorkspaceInitialized) {
+  const handleOpenFile = useCallback(
+    async (node: ProjectFileNode) => {
+      if (node.kind !== 'file') return;
+
+      try {
+        await projectWorkspace.openFile(node.path, node.name);
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error opening file: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const handleCreateFile = useCallback(
+    async (parentPath?: string) => {
+      try {
+        const node = await projectWorkspace.createFile(parentPath);
+        if (node) {
+          setStatus({ type: 'success', text: `Created file: ${node.name}` });
+        }
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error creating file: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const handleCreateFolder = useCallback(
+    async (parentPath?: string) => {
+      try {
+        const node = await projectWorkspace.createFolder(parentPath);
+        if (node) {
+          setStatus({ type: 'success', text: `Created folder: ${node.name}` });
+        }
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error creating folder: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const handleMoveEntry = useCallback(
+    async (source: ProjectFileNode, destinationFolder?: ProjectFileNode) => {
+      try {
+        const node = await projectWorkspace.moveEntry(source, destinationFolder?.path);
+        if (node) {
+          setStatus({
+            type: 'success',
+            text: `Moved ${source.name}${destinationFolder ? ` to ${destinationFolder.name}` : ''}`,
+          });
+        }
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error moving ${source.name}: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const handleOpenProjectMenu = useCallback(
+    (project: ProjectEntry, position: { x: number; y: number }) => {
+      setContextMenu({ kind: 'project', project, position });
+    },
+    []
+  );
+
+  const handleCopyPath = useCallback(async (path: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard is unavailable');
+      }
+      await navigator.clipboard.writeText(path);
+      setStatus({ type: 'success', text: 'Copied path' });
+    } catch (error) {
+      setStatus({ type: 'error', text: `Error copying path: ${error}` });
+    }
+  }, []);
+
+  const handleRevealPath = useCallback(async (path: string) => {
+    try {
+      await revealItemInDir(path);
+    } catch (error) {
+      setStatus({ type: 'error', text: `Error revealing path: ${error}` });
+    }
+  }, []);
+
+  const getProjectContextMenuItems = useCallback(
+    (project: ProjectEntry): MenuItem[] => [
+      { label: 'New File', onClick: () => void handleCreateFile(project.rootPath) },
+      { label: 'New Folder', onClick: () => void handleCreateFolder(project.rootPath) },
+      { divider: true, label: '' },
+      { label: 'Copy Path', onClick: () => void handleCopyPath(project.rootPath) },
+      { label: 'Reveal in Finder', onClick: () => void handleRevealPath(project.rootPath) },
+    ],
+    [handleCopyPath, handleCreateFile, handleCreateFolder, handleRevealPath]
+  );
+
+  if (!isInitialized) {
     return (
       <div
         style={{
@@ -422,11 +481,7 @@ function App() {
         }}
       >
         <div>Loading Workspace...</div>
-        <div style={{ fontSize: '10px', opacity: 0.7 }}>
-          Init: {String(isInitialized)}, WS: {String(isWorkspaceInitialized)}
-          <br />
-          Tabs: {workspace?.tabs?.length ?? '?'}, Groups: {workspace?.groups?.length ?? '?'}
-        </div>
+        <div style={{ fontSize: '10px', opacity: 0.7 }}>Init: {String(isInitialized)}</div>
       </div>
     );
   }
@@ -439,33 +494,90 @@ function App() {
           <span className="app-shell__brand">Boop2</span>
           <span>{scripts.length} scripts</span>
           <span className="app-shell__top-spacer" />
-          <span>{workspace.tabs.length} tabs</span>
+          <div className="app-shell__utility-actions">
+            <button
+              type="button"
+              className="app-shell__utility-action"
+              onClick={() => setIsPaletteOpen(true)}
+            >
+              Scripts
+            </button>
+            {settings.enableClipboardHistory && (
+              <button
+                type="button"
+                className="app-shell__utility-action"
+                onClick={() => {
+                  setIsClipboardOpen((isOpen) => !isOpen);
+                  setIsSessionsOpen(false);
+                  setIsSettingsOpen(false);
+                }}
+              >
+                Clipboard
+              </button>
+            )}
+            {settings.enableSessionRestore && (
+              <button
+                type="button"
+                className="app-shell__utility-action"
+                onClick={() => {
+                  setIsSessionsOpen((isOpen) => !isOpen);
+                  setIsClipboardOpen(false);
+                  setIsSettingsOpen(false);
+                }}
+              >
+                Sessions
+              </button>
+            )}
+            <button
+              type="button"
+              className="app-shell__utility-action"
+              onClick={() => {
+                setIsSettingsOpen((isOpen) => !isOpen);
+                setIsClipboardOpen(false);
+                setIsSessionsOpen(false);
+              }}
+            >
+              Settings
+            </button>
+          </div>
+          <span>{projectWorkspace.openTabs.length} files</span>
         </>
       }
-      menuHeader="Menu"
+      menuHeader={<ProjectPanelHeader onAddProject={() => void handleAddProject()} />}
       menu={
-        <WorkbenchMenu
-          sections={workbench.sections}
-          activeSectionId={workbench.activeSection?.id ?? workbench.activeSectionId}
-          onSelectSection={workbench.selectMenuSection}
-          onAddSection={workbench.addMenuSection}
-          onReorderSections={workbench.reorderMenuSections}
+        <ProjectPanel
+          projects={projectWorkspace.projects}
+          activeProjectId={projectWorkspace.activeProjectId}
+          onSelectProject={(projectId) => void handleSelectProject(projectId)}
+          onOpenProjectMenu={handleOpenProjectMenu}
         />
       }
-      listHeader={workbench.activeSection?.title ?? 'List'}
+      listHeader={
+        <FilesPanelHeader
+          disabled={!projectWorkspace.activeProject}
+          onCreateFile={() => void handleCreateFile()}
+          onCreateFolder={() => void handleCreateFolder()}
+        />
+      }
       list={
-        <WorkbenchList
-          section={workbench.activeSection}
-          activeItemId={workbench.activeItemId ?? activeTabId}
-          onOpenItem={workbench.openWorkbenchItem}
+        <FilesTree
+          nodes={projectWorkspace.fileTree}
+          expandedPaths={projectWorkspace.expandedPaths}
+          activeFilePath={projectWorkspace.selectedFilePath}
+          activeFolderPath={projectWorkspace.selectedFolderPath}
+          onToggleFolder={(node) => void handleToggleFolder(node)}
+          onOpenFile={(node) => void handleOpenFile(node)}
+          onMoveEntry={(source, destinationFolder) =>
+            void handleMoveEntry(source, destinationFolder)
+          }
         />
       }
       contentHeader={
-        <ContentTabs
-          tabs={contentTabs}
+        <FileContentTabs
+          tabs={projectWorkspace.openTabs}
           activeTabId={activeTabId}
-          onSelect={handleSelectContentTab}
-          onAdd={handleAddTab}
+          onSelectTab={projectWorkspace.selectTab}
+          onCloseTab={handleCloseTab}
         />
       }
       content={
@@ -476,6 +588,13 @@ function App() {
             scripts={scripts}
             onSelect={runSelectedScript}
           />
+          {contextMenu && (
+            <ContextMenu
+              items={getProjectContextMenuItems(contextMenu.project)}
+              position={contextMenu.position}
+              onClose={() => setContextMenu(null)}
+            />
+          )}
           {isClipboardOpen && settings.enableClipboardHistory && (
             <ClipboardPopover
               history={clipboardHistory}
@@ -506,51 +625,6 @@ function App() {
             />
           )}
 
-          <ErrorBoundary fallback={<div>Error loading TabBar</div>}>
-            <TabBar
-              tabs={workspace.tabs}
-              groups={workspace.groups}
-              activeTabId={activeTabId}
-              groupLayoutMode={settings.groupLayoutMode}
-              onSelect={setActiveTabId}
-              onClose={handleCloseTab}
-              onAdd={handleAddTab}
-              onRename={renameTab}
-              onDuplicate={duplicateTab}
-              onCloseOthers={closeOtherTabs}
-              onCloseToRight={closeTabsToRight}
-              onCloseToLeft={closeTabsToLeft}
-              onCreateGroup={createGroup}
-              onRenameGroup={renameGroup}
-              onSetGroupColor={setGroupColor}
-              onSetGroupBackgroundColor={setGroupBackgroundColor}
-              onSetGroupFontColor={setGroupFontColor}
-              onDuplicateGroup={duplicateGroup}
-              onActivateGroup={activateGroup}
-              onDeleteGroup={deleteGroup}
-              onReorderGroups={reorderGroups}
-              moveTabToGroup={moveTabToGroup}
-              onToggleClipboard={() => {
-                setIsClipboardOpen(!isClipboardOpen);
-                setIsSessionsOpen(false);
-                setIsSettingsOpen(false);
-              }}
-              onToggleSessions={() => {
-                setIsSessionsOpen(!isSessionsOpen);
-                setIsClipboardOpen(false);
-                setIsSettingsOpen(false);
-              }}
-              onToggleSettings={() => {
-                setIsSettingsOpen(!isSettingsOpen);
-                setIsClipboardOpen(false);
-                setIsSessionsOpen(false);
-              }}
-              hasHistory={settings.enableClipboardHistory && clipboardHistory.length > 0}
-              hasSessions={settings.enableSessionRestore && sessions.length > 0}
-            />
-          </ErrorBoundary>
-
-          {/* FindPanel - inline below TabBar (VS Code style) */}
           <FindPanel
             isOpen={findState.isOpen}
             onClose={closeFind}
@@ -570,17 +644,21 @@ function App() {
             onToggleWholeWord={toggleWholeWord}
           />
 
-          <ErrorBoundary>
-            <SlateEditor
-              ref={slateEditorRef}
-              editor={activeEditor}
-              initialValue={activeTab?.content || ''}
-              onChange={handleTabContentChange}
-              autoFocus={true}
-              placeholder="Type or paste text here..."
-              findState={findState}
-            />
-          </ErrorBoundary>
+          {activeTab ? (
+            <ErrorBoundary>
+              <SlateEditor
+                ref={slateEditorRef}
+                editor={activeEditor}
+                initialValue={activeTab.content}
+                onChange={handleTabContentChange}
+                autoFocus={true}
+                placeholder="Type or paste text here..."
+                findState={findState}
+              />
+            </ErrorBoundary>
+          ) : (
+            <div className="content-empty-state">Select a file from the Files panel</div>
+          )}
 
           {updateInfo?.available && (
             <UpdateNotification updateInfo={updateInfo} onDismiss={() => setUpdateInfo(null)} />
@@ -591,7 +669,7 @@ function App() {
         <div className={`status-bar status-${status.type}`}>
           <span className="status-text">{status.text || 'Ready'}</span>
           <span>
-            {workspace.tabs.length} tabs • {scripts.length} scripts
+            {projectWorkspace.openTabs.length} files • {scripts.length} scripts
           </span>
         </div>
       }

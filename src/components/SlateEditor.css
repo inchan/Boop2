@@ -32,8 +32,8 @@
 }
 
 .slate-line-number {
-  padding: 0 12px 0 8px;
-  font-size: 13px;
+  padding: 0 6px 0 4px;
+  font-size: 11px;
   line-height: 1.6;
   height: calc(13px * 1.6);
 }

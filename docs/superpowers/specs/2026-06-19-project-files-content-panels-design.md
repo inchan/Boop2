@@ -10,7 +10,7 @@ Redesign the Boop2 shell around three explicit panels:
 2. Files
 3. Content
 
-The first implementation opens root folders as Projects, renders the selected Project as a folder/file tree, and opens selected files into one in-memory Content tab per file. Disk save is out of scope for this phase.
+The first implementation opens root folders as Projects, renders the selected Project as a folder/file tree, creates new files/folders at the Project root, and opens selected files into one in-memory Content tab per file. Disk save for edited content is out of scope for this phase.
 
 ## Current Friction
 
@@ -58,6 +58,28 @@ Loading behavior:
 - Load only the root level when a Project is selected.
 - Lazy-load folder children when a folder is expanded.
 - Keep expanded/collapsed state in React state for this phase.
+
+Creation behavior:
+
+- The Files panel header has a `+` action at the far right.
+- The Files `+` action opens a small creation menu with file and folder choices.
+- New files are created at the active Project root.
+- New folders are created at the active Project root.
+- A new file defaults to `Untitled.md`.
+- A new folder defaults to `Untitled`.
+- If a default name already exists, the app numbers the new name: `Untitled 2.md`, `Untitled 3.md`, `Untitled 2`, `Untitled 3`.
+- Creating a file opens it as the active Content tab.
+- Creating a folder refreshes the Files tree without opening a Content tab.
+
+Move behavior:
+
+- File rows and folder rows are draggable.
+- Dropping a file or folder onto a folder moves it into that folder.
+- Dropping a file or folder onto the Files panel root area moves it back to the active Project root.
+- Move preserves the original file/folder name.
+- Move does not overwrite an existing destination entry with the same name.
+- Moving a folder into itself or one of its descendants is rejected.
+- If an open file tab is moved, its tab path and active selection update to the new path while keeping the in-memory editor content.
 
 Exclusion behavior:
 
@@ -107,7 +129,7 @@ Editing behavior:
 
 - File contents load into the editor surface.
 - The user can edit the opened file content in memory.
-- Disk save is out of scope for this phase.
+- Disk save for edited content is out of scope for this phase.
 - Dirty indicators are out of scope for this phase because there is no save path yet.
 
 Removed behavior:
@@ -127,9 +149,21 @@ Native folder selection:
 Filesystem reads:
 
 - Add Rust commands for reading the file tree and reading file text.
-- The commands are read-only in this phase.
 - The commands should reject or skip directories that match the exclusion rules.
 - The commands should return structured data, not UI-ready HTML.
+
+Filesystem creation:
+
+- Add Rust commands for creating a default markdown file and a default folder at the active Project root.
+- The backend owns Untitled numbering so the filesystem is the source of truth.
+- File creation writes an empty UTF-8 markdown file.
+- Folder creation creates an empty directory.
+
+Filesystem move:
+
+- Add a Rust command for moving a file or folder into a destination folder.
+- The command should reject missing sources, non-folder destinations, same-name destination conflicts, and folder self/descendant moves.
+- The command should return the moved `ProjectFileNode`.
 
 Expected read command shape:
 
@@ -149,8 +183,11 @@ Use these Rust command names:
 
 - `list_project_directory`: list children for a directory path
 - `read_project_file`: read file text for a file path
+- `create_project_file`: create an empty `Untitled.md` file under a parent directory
+- `create_project_folder`: create an `Untitled` folder under a parent directory
+- `move_project_entry`: move a file or folder into a destination folder
 
-No write command is added in this phase.
+No edited-content save command is added in this phase.
 
 ## Frontend State Model
 
@@ -216,7 +253,7 @@ Content panel:
 
 This phase does not include:
 
-- Disk save.
+- Disk save for edited content.
 - Dirty indicators.
 - Rename Project.
 - Remove Project.
@@ -237,6 +274,14 @@ The implementation is complete when:
 - The Project `+` flow opens a native folder picker.
 - Selecting a folder creates or activates a Project.
 - The second panel header says `Files`.
+- The Files panel header has a `+` action at the far right.
+- The Files `+` action offers file and folder creation.
+- Creating a file creates `Untitled.md`, or the next numbered Untitled markdown name, under the active Project root.
+- Creating a folder creates `Untitled`, or the next numbered Untitled folder name, under the active Project root.
+- Creating a file opens the new file as a Content tab.
+- Dragging a file or folder onto a folder moves it into that folder.
+- Dragging a file or folder onto the Files panel root area moves it to the active Project root.
+- Moving an open file keeps the open Content tab alive at the new path.
 - The Files panel shows folder/file tree rows for the active Project.
 - Folder disclosure controls are hidden by default and appear on hover/focus-within.
 - Long folder names truncate before the disclosure slot.
@@ -248,12 +293,12 @@ The implementation is complete when:
 - Closing the last file tab shows an empty Content state.
 - The legacy content body `TabBar` and content group UI are not rendered in the new shell.
 - Scripts, clipboard, sessions, and settings remain reachable from shell-level utility actions.
-- No disk save command or UI is added.
+- No edited-content save command or UI is added.
 
 ## Implementation Notes
 
 - Prefer a small file tree row module instead of putting truncation and tooltip logic directly in `App.tsx`.
-- Keep the first pass read-only so the panel architecture lands without file persistence complexity.
+- Keep edited-content persistence out of the first pass so the panel architecture lands without save-state complexity.
 - Use tests to lock down data behavior before visual styling:
   - duplicate Project root activates existing Project
   - duplicate file open activates existing tab

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
-import type { WorkbenchListItem, WorkbenchSection } from './workbenchTypes';
+import type { WorkbenchListItem, WorkbenchMenuIcon, WorkbenchSection } from './workbenchTypes';
 
 interface WorkbenchMenuProps {
   sections: WorkbenchSection[];
@@ -27,6 +27,72 @@ const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
   return next;
 };
 
+type MenuIconStyle = CSSProperties & {
+  '--menu-icon-bg'?: string;
+};
+
+const letterIconColors = ['#1a73e8', '#d93025', '#188038', '#f9ab00', '#9334e6', '#00897b'];
+
+const getFirstLetter = (title: string) => title.trim().charAt(0).toUpperCase() || '?';
+
+const getLetterIconColor = (sectionId: string) => {
+  const colorIndex =
+    [...sectionId].reduce((total, character) => total + character.charCodeAt(0), 0) %
+    letterIconColors.length;
+
+  return letterIconColors[colorIndex];
+};
+
+const getMenuIconStyle = (sectionId: string): MenuIconStyle => ({
+  '--menu-icon-bg': getLetterIconColor(sectionId),
+});
+
+const WorkbenchMenuIconView = ({
+  sectionId,
+  title,
+  icon,
+}: {
+  sectionId: string;
+  title: string;
+  icon?: WorkbenchMenuIcon;
+}) => {
+  if (icon?.type === 'emoji') {
+    return (
+      <span
+        className="app-shell__menu-icon app-shell__menu-icon--emoji"
+        data-testid={`workbench-menu-icon-${sectionId}`}
+        aria-label={icon.label}
+        aria-hidden={icon.label ? undefined : true}
+      >
+        {icon.value}
+      </span>
+    );
+  }
+
+  if (icon?.type === 'image') {
+    return (
+      <span
+        className="app-shell__menu-icon app-shell__menu-icon--image"
+        data-testid={`workbench-menu-icon-${sectionId}`}
+        aria-hidden={icon.alt ? undefined : true}
+      >
+        <img src={icon.src} alt={icon.alt ?? ''} />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="app-shell__menu-icon app-shell__menu-icon--letter"
+      data-testid={`workbench-menu-icon-${sectionId}`}
+      style={getMenuIconStyle(sectionId)}
+      aria-hidden="true"
+    >
+      {icon?.type === 'letter' && icon.value ? icon.value : getFirstLetter(title)}
+    </span>
+  );
+};
+
 export const WorkbenchMenu = ({
   sections,
   activeSectionId,
@@ -51,9 +117,10 @@ export const WorkbenchMenu = ({
         type="button"
         className="app-shell__menu-add"
         data-testid="workbench-menu-add"
+        aria-label="Add menu section"
         onClick={onAddSection}
       >
-        + Menu
+        +
       </button>
       {sections.map((section) => (
         <button
@@ -70,7 +137,8 @@ export const WorkbenchMenu = ({
             reorderSection(section.id);
           }}
         >
-          {section.title}
+          <WorkbenchMenuIconView sectionId={section.id} title={section.title} icon={section.icon} />
+          <span className="app-shell__menu-title">{section.title}</span>
         </button>
       ))}
     </nav>
