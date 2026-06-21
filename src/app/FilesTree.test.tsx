@@ -251,6 +251,7 @@ describe('FilesTree', () => {
     const view = renderFilesTree({
       renamingPath: '/tmp/Boop2/script-with-a-very-long-name.test.ts',
       onRenameSubmit,
+      onRenameCancel: vi.fn(),
     });
 
     const input = view.querySelector(
@@ -279,6 +280,7 @@ describe('FilesTree', () => {
     const view = renderFilesTree({
       renamingPath: '/tmp/Boop2/script-with-a-very-long-name.test.ts',
       onRenameCancel,
+      onRenameSubmit: vi.fn(),
     });
 
     const input = view.querySelector(

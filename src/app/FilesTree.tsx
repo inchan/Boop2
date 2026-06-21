@@ -248,12 +248,8 @@ const TreeRows = ({
                 data-tree-part="icon"
                 aria-hidden="true"
               />
-              {renamingPath === node.path && (onRenameSubmit || onRenameCancel) ? (
-                <RenameInput
-                  node={node}
-                  onSubmit={onRenameSubmit ?? (() => {})}
-                  onCancel={onRenameCancel ?? (() => {})}
-                />
+              {renamingPath === node.path && onRenameSubmit && onRenameCancel ? (
+                <RenameInput node={node} onSubmit={onRenameSubmit} onCancel={onRenameCancel} />
               ) : (
                 <FolderName name={node.name} />
               )}
@@ -304,12 +300,8 @@ const TreeRows = ({
           <span className="files-tree__icon" data-tree-part="icon" aria-hidden="true">
             {node.extension?.toUpperCase() ?? 'FILE'}
           </span>
-          {renamingPath === node.path && (onRenameSubmit || onRenameCancel) ? (
-            <RenameInput
-              node={node}
-              onSubmit={onRenameSubmit ?? (() => {})}
-              onCancel={onRenameCancel ?? (() => {})}
-            />
+          {renamingPath === node.path && onRenameSubmit && onRenameCancel ? (
+            <RenameInput node={node} onSubmit={onRenameSubmit} onCancel={onRenameCancel} />
           ) : (
             <FileName name={node.name} />
           )}
