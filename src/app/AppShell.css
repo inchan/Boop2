@@ -372,7 +372,7 @@
   left: var(--drag-preview-x);
   top: var(--drag-preview-y);
   z-index: 80;
-  width: min(240px, calc(100vw - 24px));
+  width: min(var(--drag-preview-width, 240px), calc(100vw - 24px));
   height: 28px;
   pointer-events: none;
   display: grid;

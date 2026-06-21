@@ -13,7 +13,6 @@ import type { ProjectFileNode } from './projectFileTypes';
 import { useOverflowTitle } from './useOverflowTitle';
 
 const POINTER_DRAG_THRESHOLD = 4;
-const DRAG_PREVIEW_MAX_WIDTH = 240;
 
 interface FilesTreeProps {
   nodes: ProjectFileNode[];
@@ -44,6 +43,7 @@ type TreeDepthStyle = CSSProperties & {
 type DragPreviewStyle = CSSProperties & {
   '--drag-preview-x': string;
   '--drag-preview-y': string;
+  '--drag-preview-width': string;
 };
 
 interface PointerDragSession {
@@ -53,6 +53,7 @@ interface PointerDragSession {
   startY: number;
   grabOffsetX: number;
   grabOffsetY: number;
+  grabWidth: number;
   isDragging: boolean;
 }
 
@@ -60,6 +61,7 @@ interface DragPreviewState {
   node: ProjectFileNode;
   x: number;
   y: number;
+  width: number;
 }
 
 const FolderName = ({ name }: { name: string }) => {
@@ -178,7 +180,7 @@ function findNodeByPath(nodes: ProjectFileNode[], path: string): ProjectFileNode
   return undefined;
 }
 
-const DragPreview = ({ node, x, y }: DragPreviewState) => (
+const DragPreview = ({ node, x, y, width }: DragPreviewState) => (
   <div
     className="files-tree__drag-preview"
     data-testid="files-tree-drag-preview"
@@ -186,6 +188,7 @@ const DragPreview = ({ node, x, y }: DragPreviewState) => (
       {
         '--drag-preview-x': `${x}px`,
         '--drag-preview-y': `${y}px`,
+        '--drag-preview-width': `${width}px`,
       } as DragPreviewStyle
     }
   >
@@ -383,8 +386,9 @@ export const FilesTree = ({
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        grabOffsetX: Math.min(Math.max(event.clientX - rowRect.left, 0), DRAG_PREVIEW_MAX_WIDTH),
+        grabOffsetX: Math.min(Math.max(event.clientX - rowRect.left, 0), rowRect.width),
         grabOffsetY: Math.min(Math.max(event.clientY - rowRect.top, 0), rowRect.height),
+        grabWidth: rowRect.width,
         isDragging: false,
       };
 
@@ -410,6 +414,7 @@ export const FilesTree = ({
           node: session.source,
           x: pointerEvent.clientX - session.grabOffsetX,
           y: pointerEvent.clientY - session.grabOffsetY,
+          width: session.grabWidth,
         });
       };
 
