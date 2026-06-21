@@ -284,6 +284,16 @@ fn rename_project_entry(
 }
 
 #[tauri::command]
+fn delete_project_entry(path: String) -> Result<(), String> {
+    let entry = PathBuf::from(&path);
+    if !entry.exists() {
+        return Err("Project entry does not exist".to_string());
+    }
+
+    trash::delete(&entry).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn load_scripts(app_handle: tauri::AppHandle) -> Result<Vec<ScriptMetadata>, String> {
     let mut scripts = Vec::new();
     let mut debug_log = String::new();
@@ -506,7 +516,8 @@ pub fn run() {
             create_project_file,
             create_project_folder,
             move_project_entry,
-            rename_project_entry
+            rename_project_entry,
+            delete_project_entry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -715,6 +726,21 @@ mod tests {
             );
         }
         assert!(source_file.exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn delete_project_entry_rejects_missing_path() {
+        let project_dir = temporary_project_dir("delete-missing");
+        let missing = project_dir.join("nope.md");
+
+        let result = delete_project_entry(missing.to_string_lossy().to_string());
+
+        assert_eq!(
+            result.expect_err("delete should reject missing path"),
+            "Project entry does not exist"
+        );
 
         fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
     }
