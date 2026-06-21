@@ -29,6 +29,16 @@ description = "Allows the move_project_entry command"
 commands.allow = ["move_project_entry"]
 
 [[permission]]
+identifier = "allow-rename-project-entry"
+description = "Allows the rename_project_entry command"
+commands.allow = ["rename_project_entry"]
+
+[[permission]]
+identifier = "allow-delete-project-entry"
+description = "Allows the delete_project_entry command"
+commands.allow = ["delete_project_entry"]
+
+[[permission]]
 identifier = "allow-greet"
 description = "Allows the greet command"
 commands.allow = ["greet"]
