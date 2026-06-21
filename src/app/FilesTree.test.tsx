@@ -203,6 +203,42 @@ describe('FilesTree', () => {
     expect(host.querySelector('[data-testid="files-tree-drag-preview"]')).toBeNull();
   });
 
+  it('moves a dragged file into the parent folder when dropped onto a child file', () => {
+    const onMoveEntry = vi.fn();
+    const folder = nodes[0];
+    const childFile: ProjectFileNode = {
+      id: '/tmp/Boop2/src/child.ts',
+      name: 'child.ts',
+      path: '/tmp/Boop2/src/child.ts',
+      kind: 'file',
+    };
+    const nestedNodes: ProjectFileNode[] = [{ ...folder, children: [childFile] }, nodes[1]];
+    const host = renderFilesTree({
+      onMoveEntry,
+      nodes: nestedNodes,
+      expandedPaths: new Set([folder.path]),
+    });
+
+    const draggedRow = host.querySelector(
+      '[data-testid="files-tree-row-/tmp/Boop2/script-with-a-very-long-name.test.ts"]'
+    );
+    const childRow = host.querySelector('[data-testid="files-tree-row-/tmp/Boop2/src/child.ts"]');
+    const originalElementFromPoint = document.elementFromPoint;
+
+    if (!draggedRow || !childRow) throw new Error('expected dragged and child rows');
+
+    document.elementFromPoint = vi.fn().mockReturnValue(childRow);
+    dispatchPointerEvent(draggedRow, 'pointerdown', { clientX: 0, clientY: 0 });
+    dispatchPointerEvent(document, 'pointermove', { clientX: 10, clientY: 0 });
+    dispatchPointerEvent(document, 'pointerup', { clientX: 10, clientY: 0 });
+    document.elementFromPoint = originalElementFromPoint;
+
+    expect(onMoveEntry).toHaveBeenCalledWith(
+      nodes[1],
+      expect.objectContaining({ path: '/tmp/Boop2/src' })
+    );
+  });
+
   it('moves a dragged file to the Project root when dropped on the tree background', () => {
     const onMoveEntry = vi.fn();
     const host = renderFilesTree({ onMoveEntry });

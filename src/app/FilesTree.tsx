@@ -13,6 +13,7 @@ import type { ProjectFileNode } from './projectFileTypes';
 import { useOverflowTitle } from './useOverflowTitle';
 
 const POINTER_DRAG_THRESHOLD = 4;
+const DRAG_PREVIEW_MAX_WIDTH = 240;
 
 interface FilesTreeProps {
   nodes: ProjectFileNode[];
@@ -30,6 +31,7 @@ interface FilesTreeProps {
 
 interface TreeRowsProps extends FilesTreeProps {
   depth: number;
+  parentPath: string;
   dropTargetPath?: string;
   onPointerDragStart: (event: ReactPointerEvent<HTMLElement>, node: ProjectFileNode) => void;
   shouldSuppressClick: () => boolean;
@@ -49,6 +51,8 @@ interface PointerDragSession {
   pointerId: number;
   startX: number;
   startY: number;
+  grabOffsetX: number;
+  grabOffsetY: number;
   isDragging: boolean;
 }
 
@@ -208,6 +212,7 @@ const TreeRows = ({
   onRenameSubmit,
   onRenameCancel,
   depth,
+  parentPath,
   dropTargetPath,
   onPointerDragStart,
   shouldSuppressClick,
@@ -268,6 +273,7 @@ const TreeRows = ({
                 onRenameSubmit={onRenameSubmit}
                 onRenameCancel={onRenameCancel}
                 depth={depth + 1}
+                parentPath={node.path}
                 dropTargetPath={dropTargetPath}
                 onPointerDragStart={onPointerDragStart}
                 shouldSuppressClick={shouldSuppressClick}
@@ -287,6 +293,7 @@ const TreeRows = ({
           }`}
           data-testid={`files-tree-row-${node.path}`}
           data-project-row="true"
+          data-project-drop-path={parentPath}
           style={{ '--tree-depth': depth } as TreeDepthStyle}
           onPointerDown={(event) => onPointerDragStart(event, node)}
           onClick={(event) => handleRowClick(event, shouldSuppressClick, () => onOpenFile(node))}
@@ -370,11 +377,14 @@ export const FilesTree = ({
       if (event.button !== 0) return;
 
       cleanupPointerDragRef.current?.();
+      const rowRect = event.currentTarget.getBoundingClientRect();
       dragSessionRef.current = {
         source: node,
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
+        grabOffsetX: Math.min(Math.max(event.clientX - rowRect.left, 0), DRAG_PREVIEW_MAX_WIDTH),
+        grabOffsetY: Math.min(Math.max(event.clientY - rowRect.top, 0), rowRect.height),
         isDragging: false,
       };
 
@@ -396,7 +406,11 @@ export const FilesTree = ({
 
         pointerEvent.preventDefault();
         setDropTargetPath(getDropTargetPathAtPoint(pointerEvent.clientX, pointerEvent.clientY));
-        setDragPreview({ node: session.source, x: pointerEvent.clientX, y: pointerEvent.clientY });
+        setDragPreview({
+          node: session.source,
+          x: pointerEvent.clientX - session.grabOffsetX,
+          y: pointerEvent.clientY - session.grabOffsetY,
+        });
       };
 
       const handlePointerUp = (pointerEvent: PointerEvent) => {
@@ -466,6 +480,7 @@ export const FilesTree = ({
           onRenameSubmit={onRenameSubmit}
           onRenameCancel={onRenameCancel}
           depth={0}
+          parentPath="root"
           dropTargetPath={dropTargetPath}
           onPointerDragStart={handlePointerDragStart}
           shouldSuppressClick={() => suppressClickRef.current}

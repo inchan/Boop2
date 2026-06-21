@@ -374,7 +374,6 @@
   z-index: 80;
   width: min(240px, calc(100vw - 24px));
   height: 28px;
-  transform: translate(10px, 8px);
   pointer-events: none;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
