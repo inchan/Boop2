@@ -684,3 +684,16 @@
   color: var(--text-secondary);
   font-size: 11px;
 }
+
+.files-tree__rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent, #4a90d9);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin: 0;
+  outline: none;
+}

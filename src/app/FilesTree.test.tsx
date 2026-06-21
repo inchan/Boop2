@@ -222,4 +222,74 @@ describe('FilesTree', () => {
 
     expect(onMoveEntry).toHaveBeenCalledWith(nodes[1]);
   });
+
+  it('calls onOpenEntryMenu on right-click with the node and position', () => {
+    const onOpenEntryMenu = vi.fn();
+    const view = renderFilesTree({ onOpenEntryMenu });
+
+    const fileRow = view.querySelector(
+      '[data-testid="files-tree-row-/tmp/Boop2/script-with-a-very-long-name.test.ts"]'
+    ) as HTMLElement;
+    const event = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      clientX: 12,
+      clientY: 34,
+    });
+    act(() => {
+      fileRow.dispatchEvent(event);
+    });
+
+    expect(onOpenEntryMenu).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/tmp/Boop2/script-with-a-very-long-name.test.ts' }),
+      { x: 12, y: 34 }
+    );
+  });
+
+  it('renders an input for the renaming row and submits on Enter', () => {
+    const onRenameSubmit = vi.fn();
+    const view = renderFilesTree({
+      renamingPath: '/tmp/Boop2/script-with-a-very-long-name.test.ts',
+      onRenameSubmit,
+    });
+
+    const input = view.querySelector(
+      'input[data-testid="files-tree-rename-input"]'
+    ) as HTMLInputElement;
+    expect(input).not.toBeNull();
+
+    act(() => {
+      input.value = 'newName.ts';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => {
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(onRenameSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/tmp/Boop2/script-with-a-very-long-name.test.ts' }),
+      'newName.ts'
+    );
+  });
+
+  it('cancels rename on Escape', () => {
+    const onRenameCancel = vi.fn();
+    const view = renderFilesTree({
+      renamingPath: '/tmp/Boop2/script-with-a-very-long-name.test.ts',
+      onRenameCancel,
+    });
+
+    const input = view.querySelector(
+      'input[data-testid="files-tree-rename-input"]'
+    ) as HTMLInputElement;
+    act(() => {
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(onRenameCancel).toHaveBeenCalled();
+  });
 });

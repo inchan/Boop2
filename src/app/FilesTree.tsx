@@ -22,6 +22,10 @@ interface FilesTreeProps {
   onToggleFolder: (node: ProjectFileNode) => void;
   onOpenFile: (node: ProjectFileNode) => void;
   onMoveEntry: (source: ProjectFileNode, destinationFolder?: ProjectFileNode) => void;
+  renamingPath?: string;
+  onOpenEntryMenu?: (node: ProjectFileNode, position: { x: number; y: number }) => void;
+  onRenameSubmit?: (node: ProjectFileNode, newName: string) => void;
+  onRenameCancel?: () => void;
 }
 
 interface TreeRowsProps extends FilesTreeProps {
@@ -91,6 +95,52 @@ const FileName = ({ name }: { name: string }) => {
   );
 };
 
+const RenameInput = ({
+  node,
+  onSubmit,
+  onCancel,
+}: {
+  node: ProjectFileNode;
+  onSubmit: (node: ProjectFileNode, newName: string) => void;
+  onCancel: () => void;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    const dotIndex = node.name.lastIndexOf('.');
+    if (node.kind === 'file' && dotIndex > 0) {
+      input.setSelectionRange(0, dotIndex);
+    } else {
+      input.select();
+    }
+  }, [node.kind, node.name]);
+
+  return (
+    <input
+      ref={inputRef}
+      className="files-tree__rename-input"
+      data-testid="files-tree-rename-input"
+      defaultValue={node.name}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      onBlur={(event) => onSubmit(node, event.currentTarget.value)}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onSubmit(node, event.currentTarget.value);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          onCancel();
+        }
+      }}
+    />
+  );
+};
+
 const handleRowKeyDown = (event: KeyboardEvent<HTMLElement>, action: () => void) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
@@ -153,6 +203,10 @@ const TreeRows = ({
   onToggleFolder,
   onOpenFile,
   onMoveEntry,
+  renamingPath,
+  onOpenEntryMenu,
+  onRenameSubmit,
+  onRenameCancel,
   depth,
   dropTargetPath,
   onPointerDragStart,
@@ -183,13 +237,26 @@ const TreeRows = ({
                 handleRowClick(event, shouldSuppressClick, () => onToggleFolder(node))
               }
               onKeyDown={(event) => handleRowKeyDown(event, () => onToggleFolder(node))}
+              onContextMenu={(event) => {
+                if (!onOpenEntryMenu) return;
+                event.preventDefault();
+                onOpenEntryMenu(node, { x: event.clientX, y: event.clientY });
+              }}
             >
               <span
                 className="files-tree__icon files-tree__icon--folder"
                 data-tree-part="icon"
                 aria-hidden="true"
               />
-              <FolderName name={node.name} />
+              {renamingPath === node.path && (onRenameSubmit || onRenameCancel) ? (
+                <RenameInput
+                  node={node}
+                  onSubmit={onRenameSubmit ?? (() => {})}
+                  onCancel={onRenameCancel ?? (() => {})}
+                />
+              ) : (
+                <FolderName name={node.name} />
+              )}
             </div>
             {isExpanded && node.children && (
               <TreeRows
@@ -200,6 +267,10 @@ const TreeRows = ({
                 onToggleFolder={onToggleFolder}
                 onOpenFile={onOpenFile}
                 onMoveEntry={onMoveEntry}
+                renamingPath={renamingPath}
+                onOpenEntryMenu={onOpenEntryMenu}
+                onRenameSubmit={onRenameSubmit}
+                onRenameCancel={onRenameCancel}
                 depth={depth + 1}
                 dropTargetPath={dropTargetPath}
                 onPointerDragStart={onPointerDragStart}
@@ -224,11 +295,24 @@ const TreeRows = ({
           onPointerDown={(event) => onPointerDragStart(event, node)}
           onClick={(event) => handleRowClick(event, shouldSuppressClick, () => onOpenFile(node))}
           onKeyDown={(event) => handleRowKeyDown(event, () => onOpenFile(node))}
+          onContextMenu={(event) => {
+            if (!onOpenEntryMenu) return;
+            event.preventDefault();
+            onOpenEntryMenu(node, { x: event.clientX, y: event.clientY });
+          }}
         >
           <span className="files-tree__icon" data-tree-part="icon" aria-hidden="true">
             {node.extension?.toUpperCase() ?? 'FILE'}
           </span>
-          <FileName name={node.name} />
+          {renamingPath === node.path && (onRenameSubmit || onRenameCancel) ? (
+            <RenameInput
+              node={node}
+              onSubmit={onRenameSubmit ?? (() => {})}
+              onCancel={onRenameCancel ?? (() => {})}
+            />
+          ) : (
+            <FileName name={node.name} />
+          )}
         </div>
       );
     })}
@@ -243,6 +327,10 @@ export const FilesTree = ({
   onToggleFolder,
   onOpenFile,
   onMoveEntry,
+  renamingPath,
+  onOpenEntryMenu,
+  onRenameSubmit,
+  onRenameCancel,
 }: FilesTreeProps) => {
   const [dropTargetPath, setDropTargetPath] = useState<string | undefined>();
   const [isPointerDragging, setIsPointerDragging] = useState(false);
@@ -381,6 +469,10 @@ export const FilesTree = ({
           onToggleFolder={onToggleFolder}
           onOpenFile={onOpenFile}
           onMoveEntry={onMoveEntry}
+          renamingPath={renamingPath}
+          onOpenEntryMenu={onOpenEntryMenu}
+          onRenameSubmit={onRenameSubmit}
+          onRenameCancel={onRenameCancel}
           depth={0}
           dropTargetPath={dropTargetPath}
           onPointerDragStart={handlePointerDragStart}
