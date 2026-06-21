@@ -273,10 +273,16 @@ fn rename_project_entry(
         let destination_canonical =
             fs::canonicalize(&destination).map_err(|error| error.to_string())?;
         if source_canonical == destination_canonical {
-            return project_file_node(&source);
+            let current_name = source.file_name().and_then(|name| name.to_str());
+            // Same path on a case-insensitive filesystem: a no-op only if the
+            // requested name matches the current one. A case-only change must
+            // still perform the rename.
+            if current_name == Some(new_name.trim()) {
+                return project_file_node(&source);
+            }
+        } else {
+            return Err("Destination already exists".to_string());
         }
-
-        return Err("Destination already exists".to_string());
     }
 
     fs::rename(&source, &destination).map_err(|error| error.to_string())?;
@@ -726,6 +732,24 @@ mod tests {
             );
         }
         assert!(source_file.exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn rename_project_entry_changes_only_case() {
+        let project_dir = temporary_project_dir("rename-case");
+        let source_file = project_dir.join("note.md");
+        fs::write(&source_file, "hello").expect("source file should be created");
+
+        let renamed = rename_project_entry(
+            source_file.to_string_lossy().to_string(),
+            "Note.md".to_string(),
+        )
+        .expect("file should rename");
+
+        assert_eq!(renamed.name, "Note.md");
+        assert!(project_dir.join("Note.md").exists());
 
         fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
     }
