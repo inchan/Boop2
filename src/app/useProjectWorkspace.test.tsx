@@ -36,6 +36,14 @@ const client: ProjectFileClient = {
     kind: 'file',
     extension: 'tsx',
   }),
+  renameProjectEntry: vi.fn().mockResolvedValue({
+    id: '/tmp/Boop2/Renamed.tsx',
+    name: 'Renamed.tsx',
+    path: '/tmp/Boop2/Renamed.tsx',
+    kind: 'file',
+    extension: 'tsx',
+  }),
+  deleteProjectEntry: vi.fn().mockResolvedValue(undefined),
 };
 
 const Probe = ({ onState }: { onState: (state: UseProjectWorkspaceResult) => void }) => {
@@ -207,6 +215,50 @@ describe('useProjectWorkspace', () => {
 
     expect(client.createProjectFolder).toHaveBeenCalledWith('/tmp/Boop2');
     expect(latestState?.openTabs).toHaveLength(0);
+  });
+
+  it('renames an open file and updates its tab path', async () => {
+    render(<Probe onState={(state) => (latestState = state)} />);
+    await act(async () => {
+      await latestState!.addProject();
+    });
+    await act(async () => {
+      await latestState!.openFile('/tmp/Boop2/App.tsx', 'App.tsx');
+    });
+
+    await act(async () => {
+      await latestState!.renameEntry(
+        { id: '/tmp/Boop2/App.tsx', name: 'App.tsx', path: '/tmp/Boop2/App.tsx', kind: 'file' },
+        'Renamed.tsx'
+      );
+    });
+
+    expect(client.renameProjectEntry).toHaveBeenCalledWith('/tmp/Boop2/App.tsx', 'Renamed.tsx');
+    expect(latestState!.openTabs.some((tab) => tab.path === '/tmp/Boop2/Renamed.tsx')).toBe(true);
+    expect(latestState!.openTabs.some((tab) => tab.path === '/tmp/Boop2/App.tsx')).toBe(false);
+  });
+
+  it('deletes a file and closes its open tab', async () => {
+    render(<Probe onState={(state) => (latestState = state)} />);
+    await act(async () => {
+      await latestState!.addProject();
+    });
+    await act(async () => {
+      await latestState!.openFile('/tmp/Boop2/App.tsx', 'App.tsx');
+    });
+    expect(latestState!.openTabs).toHaveLength(1);
+
+    await act(async () => {
+      await latestState!.deleteEntry({
+        id: '/tmp/Boop2/App.tsx',
+        name: 'App.tsx',
+        path: '/tmp/Boop2/App.tsx',
+        kind: 'file',
+      });
+    });
+
+    expect(client.deleteProjectEntry).toHaveBeenCalledWith('/tmp/Boop2/App.tsx');
+    expect(latestState!.openTabs).toHaveLength(0);
   });
 
   it('moves an open file into a folder and rewrites the open tab path', async () => {

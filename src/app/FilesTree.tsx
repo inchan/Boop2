@@ -22,10 +22,15 @@ interface FilesTreeProps {
   onToggleFolder: (node: ProjectFileNode) => void;
   onOpenFile: (node: ProjectFileNode) => void;
   onMoveEntry: (source: ProjectFileNode, destinationFolder?: ProjectFileNode) => void;
+  renamingPath?: string;
+  onOpenEntryMenu?: (node: ProjectFileNode, position: { x: number; y: number }) => void;
+  onRenameSubmit?: (node: ProjectFileNode, newName: string) => void;
+  onRenameCancel?: () => void;
 }
 
 interface TreeRowsProps extends FilesTreeProps {
   depth: number;
+  parentPath: string;
   dropTargetPath?: string;
   onPointerDragStart: (event: ReactPointerEvent<HTMLElement>, node: ProjectFileNode) => void;
   shouldSuppressClick: () => boolean;
@@ -38,6 +43,7 @@ type TreeDepthStyle = CSSProperties & {
 type DragPreviewStyle = CSSProperties & {
   '--drag-preview-x': string;
   '--drag-preview-y': string;
+  '--drag-preview-width': string;
 };
 
 interface PointerDragSession {
@@ -45,6 +51,9 @@ interface PointerDragSession {
   pointerId: number;
   startX: number;
   startY: number;
+  grabOffsetX: number;
+  grabOffsetY: number;
+  grabWidth: number;
   isDragging: boolean;
 }
 
@@ -52,6 +61,7 @@ interface DragPreviewState {
   node: ProjectFileNode;
   x: number;
   y: number;
+  width: number;
 }
 
 const FolderName = ({ name }: { name: string }) => {
@@ -91,6 +101,52 @@ const FileName = ({ name }: { name: string }) => {
   );
 };
 
+const RenameInput = ({
+  node,
+  onSubmit,
+  onCancel,
+}: {
+  node: ProjectFileNode;
+  onSubmit: (node: ProjectFileNode, newName: string) => void;
+  onCancel: () => void;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    const dotIndex = node.name.lastIndexOf('.');
+    if (node.kind === 'file' && dotIndex > 0) {
+      input.setSelectionRange(0, dotIndex);
+    } else {
+      input.select();
+    }
+  }, [node.kind, node.name]);
+
+  return (
+    <input
+      ref={inputRef}
+      className="files-tree__rename-input"
+      data-testid="files-tree-rename-input"
+      defaultValue={node.name}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      onBlur={(event) => onSubmit(node, event.currentTarget.value)}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onSubmit(node, event.currentTarget.value);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          onCancel();
+        }
+      }}
+    />
+  );
+};
+
 const handleRowKeyDown = (event: KeyboardEvent<HTMLElement>, action: () => void) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
@@ -124,7 +180,7 @@ function findNodeByPath(nodes: ProjectFileNode[], path: string): ProjectFileNode
   return undefined;
 }
 
-const DragPreview = ({ node, x, y }: DragPreviewState) => (
+const DragPreview = ({ node, x, y, width }: DragPreviewState) => (
   <div
     className="files-tree__drag-preview"
     data-testid="files-tree-drag-preview"
@@ -132,6 +188,7 @@ const DragPreview = ({ node, x, y }: DragPreviewState) => (
       {
         '--drag-preview-x': `${x}px`,
         '--drag-preview-y': `${y}px`,
+        '--drag-preview-width': `${width}px`,
       } as DragPreviewStyle
     }
   >
@@ -153,7 +210,12 @@ const TreeRows = ({
   onToggleFolder,
   onOpenFile,
   onMoveEntry,
+  renamingPath,
+  onOpenEntryMenu,
+  onRenameSubmit,
+  onRenameCancel,
   depth,
+  parentPath,
   dropTargetPath,
   onPointerDragStart,
   shouldSuppressClick,
@@ -183,13 +245,22 @@ const TreeRows = ({
                 handleRowClick(event, shouldSuppressClick, () => onToggleFolder(node))
               }
               onKeyDown={(event) => handleRowKeyDown(event, () => onToggleFolder(node))}
+              onContextMenu={(event) => {
+                if (!onOpenEntryMenu) return;
+                event.preventDefault();
+                onOpenEntryMenu(node, { x: event.clientX, y: event.clientY });
+              }}
             >
               <span
                 className="files-tree__icon files-tree__icon--folder"
                 data-tree-part="icon"
                 aria-hidden="true"
               />
-              <FolderName name={node.name} />
+              {renamingPath === node.path && onRenameSubmit && onRenameCancel ? (
+                <RenameInput node={node} onSubmit={onRenameSubmit} onCancel={onRenameCancel} />
+              ) : (
+                <FolderName name={node.name} />
+              )}
             </div>
             {isExpanded && node.children && (
               <TreeRows
@@ -200,7 +271,12 @@ const TreeRows = ({
                 onToggleFolder={onToggleFolder}
                 onOpenFile={onOpenFile}
                 onMoveEntry={onMoveEntry}
+                renamingPath={renamingPath}
+                onOpenEntryMenu={onOpenEntryMenu}
+                onRenameSubmit={onRenameSubmit}
+                onRenameCancel={onRenameCancel}
                 depth={depth + 1}
+                parentPath={node.path}
                 dropTargetPath={dropTargetPath}
                 onPointerDragStart={onPointerDragStart}
                 shouldSuppressClick={shouldSuppressClick}
@@ -220,15 +296,25 @@ const TreeRows = ({
           }`}
           data-testid={`files-tree-row-${node.path}`}
           data-project-row="true"
+          data-project-drop-path={parentPath}
           style={{ '--tree-depth': depth } as TreeDepthStyle}
           onPointerDown={(event) => onPointerDragStart(event, node)}
           onClick={(event) => handleRowClick(event, shouldSuppressClick, () => onOpenFile(node))}
           onKeyDown={(event) => handleRowKeyDown(event, () => onOpenFile(node))}
+          onContextMenu={(event) => {
+            if (!onOpenEntryMenu) return;
+            event.preventDefault();
+            onOpenEntryMenu(node, { x: event.clientX, y: event.clientY });
+          }}
         >
           <span className="files-tree__icon" data-tree-part="icon" aria-hidden="true">
             {node.extension?.toUpperCase() ?? 'FILE'}
           </span>
-          <FileName name={node.name} />
+          {renamingPath === node.path && onRenameSubmit && onRenameCancel ? (
+            <RenameInput node={node} onSubmit={onRenameSubmit} onCancel={onRenameCancel} />
+          ) : (
+            <FileName name={node.name} />
+          )}
         </div>
       );
     })}
@@ -243,6 +329,10 @@ export const FilesTree = ({
   onToggleFolder,
   onOpenFile,
   onMoveEntry,
+  renamingPath,
+  onOpenEntryMenu,
+  onRenameSubmit,
+  onRenameCancel,
 }: FilesTreeProps) => {
   const [dropTargetPath, setDropTargetPath] = useState<string | undefined>();
   const [isPointerDragging, setIsPointerDragging] = useState(false);
@@ -290,11 +380,15 @@ export const FilesTree = ({
       if (event.button !== 0) return;
 
       cleanupPointerDragRef.current?.();
+      const rowRect = event.currentTarget.getBoundingClientRect();
       dragSessionRef.current = {
         source: node,
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
+        grabOffsetX: Math.min(Math.max(event.clientX - rowRect.left, 0), rowRect.width),
+        grabOffsetY: Math.min(Math.max(event.clientY - rowRect.top, 0), rowRect.height),
+        grabWidth: rowRect.width,
         isDragging: false,
       };
 
@@ -316,7 +410,12 @@ export const FilesTree = ({
 
         pointerEvent.preventDefault();
         setDropTargetPath(getDropTargetPathAtPoint(pointerEvent.clientX, pointerEvent.clientY));
-        setDragPreview({ node: session.source, x: pointerEvent.clientX, y: pointerEvent.clientY });
+        setDragPreview({
+          node: session.source,
+          x: pointerEvent.clientX - session.grabOffsetX,
+          y: pointerEvent.clientY - session.grabOffsetY,
+          width: session.grabWidth,
+        });
       };
 
       const handlePointerUp = (pointerEvent: PointerEvent) => {
@@ -381,7 +480,12 @@ export const FilesTree = ({
           onToggleFolder={onToggleFolder}
           onOpenFile={onOpenFile}
           onMoveEntry={onMoveEntry}
+          renamingPath={renamingPath}
+          onOpenEntryMenu={onOpenEntryMenu}
+          onRenameSubmit={onRenameSubmit}
+          onRenameCancel={onRenameCancel}
           depth={0}
+          parentPath="root"
           dropTargetPath={dropTargetPath}
           onPointerDragStart={handlePointerDragStart}
           shouldSuppressClick={() => suppressClickRef.current}

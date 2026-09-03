@@ -28,4 +28,6 @@ export interface ProjectFileClient {
   createProjectFile: (parentPath: string) => Promise<ProjectFileNode>;
   createProjectFolder: (parentPath: string) => Promise<ProjectFileNode>;
   moveProjectEntry: (sourcePath: string, destinationFolderPath: string) => Promise<ProjectFileNode>;
+  renameProjectEntry: (sourcePath: string, newName: string) => Promise<ProjectFileNode>;
+  deleteProjectEntry: (path: string) => Promise<void>;
 }

@@ -40,6 +40,8 @@ export interface UseProjectWorkspaceResult {
     source: ProjectFileNode,
     destinationFolderPath?: string
   ) => Promise<ProjectFileNode | undefined>;
+  renameEntry: (node: ProjectFileNode, newName: string) => Promise<ProjectFileNode | undefined>;
+  deleteEntry: (node: ProjectFileNode) => Promise<void>;
   closeTab: (tabId: string) => void;
   selectTab: (tabId: string) => void;
   updateActiveTabContent: (content: string) => void;
@@ -115,6 +117,12 @@ function getMovedPath(candidatePath: string, sourcePath: string, movedPath: stri
   const moved = normalizeProjectPath(movedPath);
 
   return candidate === source ? moved : `${moved}${candidate.slice(source.length)}`;
+}
+
+function getParentPath(path: string): string {
+  const normalized = normalizeProjectPath(path);
+  const lastSlash = normalized.lastIndexOf('/');
+  return lastSlash <= 0 ? normalized : normalized.slice(0, lastSlash);
 }
 
 export function useProjectWorkspace({
@@ -374,6 +382,69 @@ export function useProjectWorkspace({
     [activeProject, client, refreshActiveProjectRoot]
   );
 
+  const renameEntry = useCallback(
+    async (node: ProjectFileNode, newName: string) => {
+      if (!activeProject) return undefined;
+
+      const renamedNode = await client.renameProjectEntry(node.path, newName);
+      await refreshCreationParent(getParentPath(node.path));
+
+      setOpenTabs((currentTabs) =>
+        currentTabs.map((tab) => {
+          const nextPath = getMovedPath(tab.path, node.path, renamedNode.path);
+          return nextPath === tab.path
+            ? tab
+            : {
+                ...tab,
+                id: nextPath,
+                path: nextPath,
+                title: getDefaultProjectName(nextPath),
+              };
+        })
+      );
+      setSelectedFilePath((currentPath) =>
+        currentPath ? getMovedPath(currentPath, node.path, renamedNode.path) : currentPath
+      );
+      setSelectedFolderPath((currentPath) =>
+        currentPath ? getMovedPath(currentPath, node.path, renamedNode.path) : currentPath
+      );
+      setActiveTabId((currentTabId) =>
+        currentTabId ? getMovedPath(currentTabId, node.path, renamedNode.path) : currentTabId
+      );
+
+      return renamedNode;
+    },
+    [activeProject, client, refreshCreationParent]
+  );
+
+  const deleteEntry = useCallback(
+    async (node: ProjectFileNode) => {
+      if (!activeProject) return;
+
+      await client.deleteProjectEntry(node.path);
+      await refreshCreationParent(getParentPath(node.path));
+
+      setOpenTabs((currentTabs) => {
+        const remaining = currentTabs.filter((tab) => !isSameOrDescendantPath(tab.path, node.path));
+        if (remaining.length !== currentTabs.length) {
+          setActiveTabId((currentTabId) =>
+            currentTabId && isSameOrDescendantPath(currentTabId, node.path)
+              ? remaining[remaining.length - 1]?.id
+              : currentTabId
+          );
+        }
+        return remaining;
+      });
+      setSelectedFilePath((currentPath) =>
+        currentPath && isSameOrDescendantPath(currentPath, node.path) ? undefined : currentPath
+      );
+      setSelectedFolderPath((currentPath) =>
+        currentPath && isSameOrDescendantPath(currentPath, node.path) ? undefined : currentPath
+      );
+    },
+    [activeProject, client, refreshCreationParent]
+  );
+
   const closeTab = useCallback(
     (tabId: string) => {
       setOpenTabs((currentTabs) => {
@@ -431,6 +502,8 @@ export function useProjectWorkspace({
     createFile,
     createFolder,
     moveEntry,
+    renameEntry,
+    deleteEntry,
     closeTab,
     selectTab,
     updateActiveTabContent,

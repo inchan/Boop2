@@ -47,4 +47,14 @@ export const projectFileClient: ProjectFileClient = {
     });
     return normalizeBackendProjectFileNode(node);
   },
+  async renameProjectEntry(sourcePath, newName) {
+    const node = await invoke<BackendProjectFileNode>('rename_project_entry', {
+      sourcePath,
+      newName,
+    });
+    return normalizeBackendProjectFileNode(node);
+  },
+  async deleteProjectEntry(path) {
+    await invoke('delete_project_entry', { path });
+  },
 };

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { createEditor, Descendant } from 'slate';
 import { withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
@@ -31,11 +32,9 @@ const STORAGE_KEY_SESSIONS = 'boop_sessions_stack_v3';
 // const STORAGE_KEY_CURRENT_TMP = 'boop_current_session_tmp_v3'; // Handled by useWorkspace
 const STORAGE_KEY_SETTINGS = 'boop_settings_v1';
 
-type ShellContextMenu = {
-  kind: 'project';
-  project: ProjectEntry;
-  position: { x: number; y: number };
-};
+type ShellContextMenu =
+  | { kind: 'project'; project: ProjectEntry; position: { x: number; y: number } }
+  | { kind: 'entry'; node: ProjectFileNode; position: { x: number; y: number } };
 
 function App() {
   const projectWorkspace = useProjectWorkspace();
@@ -92,6 +91,7 @@ function App() {
     text: '',
   });
   const [contextMenu, setContextMenu] = useState<ShellContextMenu | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | undefined>(undefined);
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
@@ -428,6 +428,55 @@ function App() {
     [projectWorkspace]
   );
 
+  const handleOpenEntryMenu = useCallback(
+    (node: ProjectFileNode, position: { x: number; y: number }) => {
+      setContextMenu({ kind: 'entry', node, position });
+    },
+    []
+  );
+
+  const handleRenameSubmit = useCallback(
+    async (node: ProjectFileNode, newName: string) => {
+      setRenamingPath(undefined);
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed === node.name) return;
+      try {
+        const renamed = await projectWorkspace.renameEntry(node, trimmed);
+        if (renamed) {
+          setStatus({ type: 'success', text: `Renamed to ${renamed.name}` });
+        }
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error renaming ${node.name}: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const handleDeleteEntry = useCallback(
+    async (node: ProjectFileNode) => {
+      const confirmed = await ask(`"${node.name}"을(를) 휴지통으로 이동할까요?`, {
+        title: '삭제 확인',
+        kind: 'warning',
+      });
+      if (!confirmed) return;
+      try {
+        await projectWorkspace.deleteEntry(node);
+        setStatus({ type: 'success', text: `Deleted ${node.name}` });
+      } catch (error) {
+        setStatus({ type: 'error', text: `Error deleting ${node.name}: ${error}` });
+      }
+    },
+    [projectWorkspace]
+  );
+
+  const getEntryContextMenuItems = useCallback(
+    (node: ProjectFileNode): MenuItem[] => [
+      { label: '이름 변경', onClick: () => setRenamingPath(node.path) },
+      { label: '삭제', onClick: () => void handleDeleteEntry(node) },
+    ],
+    [handleDeleteEntry]
+  );
+
   const handleOpenProjectMenu = useCallback(
     (project: ProjectEntry, position: { x: number; y: number }) => {
       setContextMenu({ kind: 'project', project, position });
@@ -570,6 +619,10 @@ function App() {
           onMoveEntry={(source, destinationFolder) =>
             void handleMoveEntry(source, destinationFolder)
           }
+          renamingPath={renamingPath}
+          onOpenEntryMenu={handleOpenEntryMenu}
+          onRenameSubmit={(node, newName) => void handleRenameSubmit(node, newName)}
+          onRenameCancel={() => setRenamingPath(undefined)}
         />
       }
       contentHeader={
@@ -590,7 +643,11 @@ function App() {
           />
           {contextMenu && (
             <ContextMenu
-              items={getProjectContextMenuItems(contextMenu.project)}
+              items={
+                contextMenu.kind === 'project'
+                  ? getProjectContextMenuItems(contextMenu.project)
+                  : getEntryContextMenuItems(contextMenu.node)
+              }
               position={contextMenu.position}
               onClose={() => setContextMenu(null)}
             />

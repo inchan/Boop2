@@ -240,6 +240,65 @@ fn move_project_entry(
     project_file_node(&destination)
 }
 
+fn is_valid_entry_name(name: &str) -> bool {
+    let trimmed = name.trim();
+    !trimmed.is_empty()
+        && trimmed != "."
+        && trimmed != ".."
+        && !trimmed.contains('/')
+        && !trimmed.contains('\\')
+}
+
+#[tauri::command]
+fn rename_project_entry(
+    source_path: String,
+    new_name: String,
+) -> Result<ProjectFileNode, String> {
+    let source = PathBuf::from(source_path);
+    if !source.exists() {
+        return Err("Project entry source does not exist".to_string());
+    }
+
+    if !is_valid_entry_name(&new_name) {
+        return Err("Invalid name".to_string());
+    }
+
+    let parent = source
+        .parent()
+        .ok_or_else(|| "Project entry source has no parent".to_string())?;
+    let destination = parent.join(new_name.trim());
+
+    if destination.exists() {
+        let source_canonical = fs::canonicalize(&source).map_err(|error| error.to_string())?;
+        let destination_canonical =
+            fs::canonicalize(&destination).map_err(|error| error.to_string())?;
+        if source_canonical == destination_canonical {
+            let current_name = source.file_name().and_then(|name| name.to_str());
+            // Same path on a case-insensitive filesystem: a no-op only if the
+            // requested name matches the current one. A case-only change must
+            // still perform the rename.
+            if current_name == Some(new_name.trim()) {
+                return project_file_node(&source);
+            }
+        } else {
+            return Err("Destination already exists".to_string());
+        }
+    }
+
+    fs::rename(&source, &destination).map_err(|error| error.to_string())?;
+    project_file_node(&destination)
+}
+
+#[tauri::command]
+fn delete_project_entry(path: String) -> Result<(), String> {
+    let entry = PathBuf::from(&path);
+    if !entry.exists() {
+        return Err("Project entry does not exist".to_string());
+    }
+
+    trash::delete(&entry).map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 fn load_scripts(app_handle: tauri::AppHandle) -> Result<Vec<ScriptMetadata>, String> {
     let mut scripts = Vec::new();
@@ -462,7 +521,9 @@ pub fn run() {
             read_project_file,
             create_project_file,
             create_project_folder,
-            move_project_entry
+            move_project_entry,
+            rename_project_entry,
+            delete_project_entry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -608,6 +669,102 @@ mod tests {
             "Cannot move a folder into itself"
         );
         assert!(source_dir.exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn rename_project_entry_renames_file() {
+        let project_dir = temporary_project_dir("rename-file");
+        let source_file = project_dir.join("note.md");
+        fs::write(&source_file, "hello").expect("source file should be created");
+
+        let renamed = rename_project_entry(
+            source_file.to_string_lossy().to_string(),
+            "renamed.md".to_string(),
+        )
+        .expect("file should rename");
+
+        assert_eq!(renamed.name, "renamed.md");
+        assert_eq!(renamed.kind, "file");
+        assert!(!source_file.exists());
+        assert!(project_dir.join("renamed.md").exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn rename_project_entry_rejects_existing_destination() {
+        let project_dir = temporary_project_dir("rename-existing");
+        let source_file = project_dir.join("note.md");
+        fs::write(&source_file, "hello").expect("source file should be created");
+        fs::write(project_dir.join("taken.md"), "existing")
+            .expect("existing file should be created");
+
+        let result = rename_project_entry(
+            source_file.to_string_lossy().to_string(),
+            "taken.md".to_string(),
+        );
+
+        assert_eq!(
+            result.expect_err("rename should reject existing destination"),
+            "Destination already exists"
+        );
+        assert!(source_file.exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn rename_project_entry_rejects_invalid_name() {
+        let project_dir = temporary_project_dir("rename-invalid");
+        let source_file = project_dir.join("note.md");
+        fs::write(&source_file, "hello").expect("source file should be created");
+
+        for bad in ["", "   ", "a/b.md", "..", "."] {
+            let result = rename_project_entry(
+                source_file.to_string_lossy().to_string(),
+                bad.to_string(),
+            );
+            assert_eq!(
+                result.expect_err("rename should reject invalid name"),
+                "Invalid name"
+            );
+        }
+        assert!(source_file.exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn rename_project_entry_changes_only_case() {
+        let project_dir = temporary_project_dir("rename-case");
+        let source_file = project_dir.join("note.md");
+        fs::write(&source_file, "hello").expect("source file should be created");
+
+        let renamed = rename_project_entry(
+            source_file.to_string_lossy().to_string(),
+            "Note.md".to_string(),
+        )
+        .expect("file should rename");
+
+        assert_eq!(renamed.name, "Note.md");
+        assert!(project_dir.join("Note.md").exists());
+
+        fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
+    }
+
+    #[test]
+    fn delete_project_entry_rejects_missing_path() {
+        let project_dir = temporary_project_dir("delete-missing");
+        let missing = project_dir.join("nope.md");
+
+        let result = delete_project_entry(missing.to_string_lossy().to_string());
+
+        assert_eq!(
+            result.expect_err("delete should reject missing path"),
+            "Project entry does not exist"
+        );
 
         fs::remove_dir_all(project_dir).expect("temporary project dir should be removed");
     }

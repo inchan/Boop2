@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "dialog:allow-open",
+    "dialog:allow-ask",
     "updater:default",
     "process:allow-restart",
     "allow-load-scripts",
@@ -15,6 +16,8 @@
     "allow-create-project-file",
     "allow-create-project-folder",
     "allow-move-project-entry",
+    "allow-rename-project-entry",
+    "allow-delete-project-entry",
     "allow-greet"
   ]
 }
